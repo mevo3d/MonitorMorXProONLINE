@@ -1,0 +1,18 @@
+{
+  "name": "monitoreo-xpro-bot",
+  "version": "1.0.0",
+  "description": "Bot de monitoreo de listas de X Pro con palabras clave",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.10",
+    "dotenv": "^17.0.0",
+    "node-telegram-bot-api": "^0.61.0",
+    "playwright": "^1.53.2",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.31.0"
+  }
+}

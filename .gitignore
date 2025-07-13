@@ -1,0 +1,70 @@
+# .gitignore para MonitorMorXPro
+
+# Dependencias
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Variables de entorno (¡IMPORTANTE!)
+.env
+env
+.env.local
+.env.production
+
+# Archivos de datos generados
+media/
+logs/
+processed.json
+contenido-enviado.json
+urls_procesadas.txt
+
+# Archivos temporales
+*.tmp
+*.temp
+.cache/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos de editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos de respaldo
+*.backup
+*.bak
+*.old
+js\ RESPALDO/
+
+# Certificados y claves
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Multimedia descargada
+*.mp4
+*.avi
+*.mov
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.pdf
+
+# Comprimidos
+*.zip
+*.rar
+*.7z
+*.tar.gz
+
+# Archivos específicos del proyecto
+keywords.json.backup
+duplicados_*.txt
+duplicados_*.json
