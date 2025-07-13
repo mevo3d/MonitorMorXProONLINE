@@ -1,0 +1,7 @@
+// ARCHIVO DESHABILITADO - NO USAR EN PRODUCCIÓN
+// Este archivo mostraba QR codes en consola y era interactivo
+// Lo cual puede delatar la automatización y causar bloqueos de cuenta
+
+console.log('❌ Este archivo ha sido deshabilitado por seguridad.');
+console.log('💡 Para obtener Chat IDs, usa WhatsApp Web manualmente o el comando /whatsapp del bot.');
+process.exit(1);

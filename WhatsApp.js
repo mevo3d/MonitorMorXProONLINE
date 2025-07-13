@@ -1,7 +1,7 @@
 // WhatsApp.js - Módulo para envío de mensajes vía WhatsApp con sesión persistente
 import pkg from 'whatsapp-web.js';
 const { Client, LocalAuth, MessageMedia } = pkg;
-import qrcode from 'qrcode-terminal';
+// import qrcode from 'qrcode-terminal'; // REMOVIDO - No mostrar QR en consola
 import fs from 'fs';
 import path from 'path';
 
@@ -90,7 +90,7 @@ class WhatsAppBot {
   }
 
   async inicializar() {
-    console.log('🟢 Inicializando cliente WhatsApp...');
+    // console.log('🟢 Inicializando cliente...'); // SILENCIOSO
     
     try {
       this.client = new Client({
@@ -138,11 +138,10 @@ class WhatsAppBot {
   }
 
   configurarEventos() {
-    // Evento QR para login inicial
+    // Evento QR - SILENCIOSO (no mostrar en consola)
     this.client.on('qr', (qr) => {
-      console.log('📱 Escanea el código QR con WhatsApp:');
-      qrcode.generate(qr, { small: true });
-      console.log('⏳ Esperando escaneo del código QR...');
+      // QR code recibido pero no se muestra para evitar detección
+      // El usuario debe tener sesión ya guardada en LocalAuth
     });
 
     // Cliente listo
