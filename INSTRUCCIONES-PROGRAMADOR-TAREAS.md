@@ -35,8 +35,8 @@ Configurar el Monitor X Pro para que se ejecute automáticamente todos los días
 ### 5. 🚀 Configurar la pestaña ACCIONES
 - Haz clic en **"Nueva..."**
 - **Acción**: `Iniciar un programa`
-- **Programa o script**: `C:\Users\BALERION\proyectos-automatizacion\playwright-proyecto\iniciar-monitor.bat`
-- **Iniciar en**: `C:\Users\BALERION\proyectos-automatizacion\playwright-proyecto`
+- **Programa o script**: `C:\Users\BALERION\proyectos-automatizacion\monitor-morelos\iniciar-monitor.bat`
+- **Iniciar en**: `C:\Users\BALERION\proyectos-automatizacion\monitor-morelos`
 - Haz clic en **"Aceptar"**
 
 ### 6. 🔧 Configurar la pestaña CONDICIONES

@@ -1,15 +1,1 @@
-{
-  "ventana": {
-    "ancho": 1280,
-    "alto": 800,
-    "posicion_x": 100,
-    "posicion_y": 100,
-    "pantalla_completa": false,
-    "permitir_minimizar": true
-  },
-  "comportamiento": {
-    "traer_al_frente_en_error": false,
-    "funcionar_en_segundo_plano": true,
-    "verificar_responsividad": true
-  }
-}
+{"ventana":{"ancho":1280,"alto":800,"posicion_x":100,"posicion_y":100,"pantalla_completa":false},"comportamiento":{"traer_al_frente_en_error":false,"funcionar_en_segundo_plano":true},"mantenimiento":{"max_reconnect_attempts":10,"reconnect_delay_base":5000}}

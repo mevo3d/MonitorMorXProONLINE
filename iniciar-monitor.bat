@@ -8,7 +8,7 @@ echo ======================================
 echo.
 
 REM Cambiar al directorio del proyecto
-cd /d "C:\Users\BALERION\proyectos-automatizacion\playwright-proyecto"
+cd /d "C:\Users\BALERION\proyectos-automatizacion\monitor-morelos"
 
 REM Verificar que Node.js está disponible
 where node >nul 2>nul

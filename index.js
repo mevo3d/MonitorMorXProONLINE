@@ -6,7 +6,7 @@ import fs from 'fs';
 import { chromium } from 'playwright';
 import readline from 'readline';
 import TelegramBot from 'node-telegram-bot-api';
-import WhatsAppBot from './WhatsApp.js';
+import WhatsAppBot from './WhatsAppMejorado.js';
 import https from 'https';
 import path from 'path';
 import { exec } from 'child_process';
@@ -147,8 +147,6 @@ function registrarURLEnLog(url, tipo, palabrasClave, autor = 'Desconocido', twee
     console.error(`❌ Error escribiendo log [${tweetId}]: ${error.message}`);
   }
 }
-
-// Función para verificar si es contenido duplicado
 
 // Función para limpiar archivos los lunes
 function limpiarArchivosLunes() {
@@ -410,163 +408,13 @@ const whatsapp = new WhatsAppBot();
 const resumenDiario = { 
   total: 0, 
   enviados: 0, 
-  menciones: {},
-  duplicados: 0,
-  duplicadosDetalles: []
+  menciones: {}
 };
 
-// Sistema de detección de duplicados
-let registroContenido = {
-  tweets: {},
-  duplicados: {
-    total: 0,
-    detalles: []
-  },
-  ultima_actualizacion: new Date().toISOString()
-};
 
-// Cache para evitar mostrar el mismo duplicado múltiples veces en consola
-const duplicadosReportados = new Set();
-let contadorDuplicadosSilenciosos = 0;
 
-// Cargar registro de contenido enviado si existe
-function cargarRegistroContenido() {
-  const registroPath = './contenido-enviado.json';
-  try {
-    if (fs.existsSync(registroPath)) {
-      const data = fs.readFileSync(registroPath, 'utf8');
-      registroContenido = JSON.parse(data);
-      console.log(`📋 Registro de contenido cargado: ${Object.keys(registroContenido.tweets).length} tweets únicos`);
-    }
-  } catch (error) {
-    console.error('❌ Error cargando registro de contenido:', error.message);
-  }
-}
 
-// Guardar registro de contenido
-function guardarRegistroContenido() {
-  const registroPath = './contenido-enviado.json';
-  try {
-    registroContenido.ultima_actualizacion = new Date().toISOString();
-    fs.writeFileSync(registroPath, JSON.stringify(registroContenido, null, 2));
-  } catch (error) {
-    console.error('❌ Error guardando registro de contenido:', error.message);
-  }
-}
 
-// Guardar log detallado de duplicados en archivo TXT
-function guardarLogDuplicados(detalle) {
-  try {
-    const fechaHoy = new Date().toISOString().split('T')[0];
-    const logPath = path.join(CARPETA_LOGS, `duplicados_${fechaHoy}.txt`);
-    
-    const linea = `[${new Date().toLocaleString('es-MX')}] ` +
-                 `Hash: ${detalle.hash} | ` +
-                 `${detalle.es_primera_deteccion ? 'NUEVO' : 'REPETIDO'} | ` +
-                 `Autor: ${detalle.autor_actual} | ` +
-                 `Original: ${detalle.autor_original} | ` +
-                 `Media: ${detalle.tiene_media ? 'SÍ' : 'NO'} | ` +
-                 `Texto: "${detalle.texto_preview}"\n`;
-    
-    fs.appendFileSync(logPath, linea);
-  } catch (error) {
-    console.error('❌ Error guardando log de duplicados:', error.message);
-  }
-}
-
-// Generar hash único para contenido
-function generarHashContenido(texto, autor, mediaUrl = null) {
-  // Normalizar texto: quitar espacios extras, convertir a minúsculas
-  const textoNormalizado = texto
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .trim()
-    .substring(0, 200); // Primeros 200 caracteres
-  
-  // Crear identificador único combinando texto + autor + media
-  const contenidoBase = `${textoNormalizado}|${autor}|${mediaUrl || 'sin-media'}`;
-  
-  // Generar hash simple
-  let hash = 0;
-  for (let i = 0; i < contenidoBase.length; i++) {
-    const char = contenidoBase.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  
-  return `hash_${Math.abs(hash).toString(16)}`;
-}
-
-// Verificar si el contenido ya fue enviado
-function esContenidoDuplicado(texto, autor, mediaUrl = null) {
-  const hash = generarHashContenido(texto, autor, mediaUrl);
-  
-  if (registroContenido.tweets[hash]) {
-    const original = registroContenido.tweets[hash];
-    resumenDiario.duplicados++;
-    
-    const detalleDuplicado = {
-      hash,
-      autor_actual: autor,
-      autor_original: original.autor,
-      hora_actual: new Date().toLocaleTimeString('es-MX'),
-      hora_original: new Date(original.timestamp).toLocaleTimeString('es-MX'),
-      texto_preview: texto.substring(0, 100) + '...',
-      tiene_media: !!mediaUrl
-    };
-    
-    resumenDiario.duplicadosDetalles.push(detalleDuplicado);
-    registroContenido.duplicados.total++;
-    registroContenido.duplicados.detalles.push(detalleDuplicado);
-    
-    // Guardar información detallada en archivo log
-    const detalleCompleto = {
-      hash,
-      timestamp_deteccion: new Date().toISOString(),
-      autor_original: original.autor,
-      fecha_original: original.timestamp,
-      autor_actual: autor,
-      fecha_actual: new Date().toISOString(),
-      texto_completo: texto,
-      texto_preview: texto.substring(0, 100) + '...',
-      tiene_media: !!mediaUrl,
-      media_url: mediaUrl || null,
-      es_primera_deteccion: !duplicadosReportados.has(hash)
-    };
-    
-    // Guardar en archivo de log detallado
-    guardarLogDuplicados(detalleCompleto);
-    
-    // Consola: Solo notificación mínima
-    if (!duplicadosReportados.has(hash)) {
-      duplicadosReportados.add(hash);
-      console.log(`🔁 Duplicado detectado [${hash}] de ${autor} (guardado en logs)`);
-    } else {
-      contadorDuplicadosSilenciosos++;
-      // Solo mostrar cada 10 duplicados para mantener consola limpia
-      if (contadorDuplicadosSilenciosos % 10 === 0) {
-        console.log(`🔇 ${contadorDuplicadosSilenciosos} duplicados adicionales (detalles en logs)`);
-      }
-    }
-    
-    return true;
-  }
-  
-  // Registrar contenido nuevo
-  registroContenido.tweets[hash] = {
-    autor,
-    timestamp: new Date().toISOString(),
-    texto_preview: texto.substring(0, 100) + '...',
-    tiene_media: !!mediaUrl
-  };
-  
-  // Guardar cada 10 tweets nuevos
-  if (Object.keys(registroContenido.tweets).length % 10 === 0) {
-    guardarRegistroContenido();
-  }
-  
-  return false;
-}
 const historialTweets = new Set();
 const tweetsEnviados = new Map(); // Para evitar duplicados con más información
 
@@ -826,17 +674,22 @@ bot.onText(/\/duplicados/, async (msg) => {
   await bot.sendMessage(msg.chat.id, mensaje, { parse_mode: 'Markdown' });
 });
 
-// Comando para ver estado de WhatsApp con monitoreo
+// Comando para ver estado de WhatsApp con monitoreo mejorado
 bot.onText(/\/whatsapp/, async (msg) => {
   const estado = whatsapp.getEstado();
-  const mensaje = `📱 *Estado WhatsApp Detallado:*\n\n` +
+  const mensaje = `📱 *Estado WhatsApp Mejorado:*\n\n` +
                  `🔗 Conectado: ${estado.conectado ? '✅' : '❌'}\n` +
                  `💬 Chat configurado: ${estado.chatConfigured ? '✅' : '❌'}\n` +
-                 `👁️ Monitoreo ventana: ${estado.monitoreoActivo ? '✅ Activo' : '❌ Inactivo'}\n` +
-                 `🔄 Intentos reconexión: ${estado.reconnectAttempts}/5\n\n` +
+                 `🔄 Reconexiones: ${estado.reconnectAttempts}/10\n` +
+                 `📊 Total reconexiones: ${estado.totalReconnects || 0}\n` +
+                 `📨 Mensajes enviados: ${estado.totalMessagessSent || 0}\n` +
+                 `⏱️ Uptime: ${estado.uptime || 'N/A'}\n` +
+                 `🕐 Última actividad: ${estado.lastActivity || 'N/A'}\n\n` +
                  `${!estado.chatConfigured ? '⚠️ Configura WHATSAPP_CHAT_ID en .env\n' : ''}` +
-                 `${!estado.conectado ? '🔄 Auto-reconexión habilitada\n' : ''}` +
-                 `${estado.monitoreoActivo ? '🛡️ Reapertura automática habilitada' : ''}`;
+                 `${!estado.conectado ? '🔄 Auto-reconexión mejorada habilitada (hasta 10 intentos)\n' : ''}` +
+                 `✨ Sistema de mantenimiento activo: Heartbeat + Verificación de conexión\n` +
+                 `💾 Backup automático de sesión habilitado\n` +
+                 `📱 Notificaciones a Telegram por desconexiones`;
   
   await bot.sendMessage(msg.chat.id, mensaje, { parse_mode: 'Markdown' });
 });
@@ -853,11 +706,6 @@ bot.onText(/\/help/, async (msg) => {
                  `• /DVideo - Reintentar videos fallidos\n` +
                  `• /VFallidos - Ver lista de fallidos\n` +
                  `• /LimpiarFallidos - Limpiar lista\n\n` +
-                 `*📊 Estadísticas:*\n` +
-                 `• /duplicados - Ver resumen de duplicados\n` +
-                 `• /detalle_duplicados - Ver detalles completos\n` +
-                 `• /hash <código> - Ver contenido específico\n` +
-                 `• /export_duplicados - Exportar log completo\n\n` +
                  `*📱 WhatsApp:*\n` +
                  `• /whatsapp - Ver estado detallado\n\n` +
                  `*ℹ️ General:*\n` +
@@ -1437,15 +1285,9 @@ async function monitorearListaX() {
         // Extraer autor primero para verificar duplicados
         const autor = await extraerAutor(tweetElement);
         
-        // Verificar si hay media para incluir en la detección de duplicados
+        // Verificar si hay media
         const media = await tweetElement.$('img');
         const video = await tweetElement.$('video');
-        const mediaUrl = media ? await media.getAttribute('src') : (video ? await video.getAttribute('src') : null);
-        
-        // Verificar si es contenido duplicado
-        if (esContenidoDuplicado(textoTweet, autor, mediaUrl)) {
-          continue; // Saltar duplicados (ya se registró en la función)
-        }
         
         // Agregar al historial tradicional también
         historialTweets.add(url);
@@ -1683,8 +1525,6 @@ console.log(`📁 Carpeta videos: ${CARPETA_VIDEOS}`);
 console.log(`📁 Carpeta imágenes: ${CARPETA_IMAGENES}`);
 console.log(`📁 Carpeta logs: ${CARPETA_LOGS}`);
 
-// Cargar registro de contenido enviado
-cargarRegistroContenido();
 
 
 // Inicializar WhatsApp
@@ -1814,9 +1654,6 @@ function programarCierreAutomatico() {
     // Enviar estadísticas finales
     await enviarEstadisticasFinales();
     
-    // Guardar registro final
-    guardarRegistroContenido();
-    console.log('💾 Registro de contenido guardado (cierre automático)');
     
     // Esperar un poco para que se envíe el mensaje
     setTimeout(() => {
@@ -1843,9 +1680,6 @@ process.on('unhandledRejection', async (reason, promise) => {
 process.on('SIGINT', async () => {
   console.log('\n🛑 Cerrando sistema...');
   
-  // Guardar registro de contenido antes de cerrar
-  guardarRegistroContenido();
-  console.log('💾 Registro de contenido guardado');
   
   process.exit(0);
 });

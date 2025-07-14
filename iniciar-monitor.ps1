@@ -7,7 +7,7 @@ Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Cambiar al directorio del proyecto
-$proyectoDir = "C:\Users\BALERION\proyectos-automatizacion\playwright-proyecto"
+$proyectoDir = "C:\Users\BALERION\proyectos-automatizacion\monitor-morelos"
 Set-Location $proyectoDir
 
 # Verificar que Node.js está disponible

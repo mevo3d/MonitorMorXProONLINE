@@ -68,3 +68,13 @@ js\ RESPALDO/
 keywords.json.backup
 duplicados_*.txt
 duplicados_*.json
+
+# Sesiones de WhatsApp y navegador (contienen datos sensibles)
+sesion-whatsapp/
+sesion-whatsapp-mejorada/
+sesion-whatsapp-backup/
+sesion-x/
+whatsapp-stats.json
+
+# Archivos temporales del sistema
+nul
