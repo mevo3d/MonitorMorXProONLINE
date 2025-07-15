@@ -7,6 +7,7 @@ import { chromium } from 'playwright';
 import readline from 'readline';
 import TelegramBot from 'node-telegram-bot-api';
 import WhatsAppBot from './WhatsAppMejorado.js';
+import DetectorDuplicados from './DetectorDuplicados.js';
 import https from 'https';
 import path from 'path';
 import { exec } from 'child_process';
@@ -405,6 +406,7 @@ const XPRO_BASE_URL = 'https://pro.x.com';
 const USER_DATA_DIR = path.resolve('./sesion-x');
 const bot = new TelegramBot(TELEGRAM_TOKEN);
 const whatsapp = new WhatsAppBot();
+const detectorDuplicados = new DetectorDuplicados();
 const resumenDiario = { 
   total: 0, 
   enviados: 0, 
@@ -706,12 +708,69 @@ bot.onText(/\/help/, async (msg) => {
                  `• /DVideo - Reintentar videos fallidos\n` +
                  `• /VFallidos - Ver lista de fallidos\n` +
                  `• /LimpiarFallidos - Limpiar lista\n\n` +
+                 `*🔍 Duplicados:*\n` +
+                 `• /omitidos - Ver omisiones de hoy\n` +
+                 `• /omitidos_detalle - Lista detallada\n` +
+                 `• /estadisticas_duplicados - Métricas\n` +
+                 `• /tweets_enviados - Ver tweets enviados\n` +
+                 `• /revisar_omitidos - Revisión manual\n\n` +
                  `*📱 WhatsApp:*\n` +
                  `• /whatsapp - Ver estado detallado\n\n` +
                  `*ℹ️ General:*\n` +
                  `• /help - Mostrar esta ayuda`;
   
   await bot.sendMessage(msg.chat.id, mensaje, { parse_mode: 'Markdown' });
+});
+
+// Comandos para sistema de duplicados
+bot.onText(/\/omitidos/, async (msg) => {
+  try {
+    const reporte = await detectorDuplicados.obtenerOmisionesHoy();
+    await bot.sendMessage(msg.chat.id, reporte, { parse_mode: 'Markdown' });
+  } catch (error) {
+    await bot.sendMessage(msg.chat.id, `❌ Error obteniendo omisiones: ${error.message}`);
+  }
+});
+
+bot.onText(/\/omitidos_detalle/, async (msg) => {
+  try {
+    const reporte = await detectorDuplicados.obtenerOmisionesHoy();
+    await bot.sendMessage(msg.chat.id, reporte, { parse_mode: 'Markdown' });
+  } catch (error) {
+    await bot.sendMessage(msg.chat.id, `❌ Error obteniendo detalles: ${error.message}`);
+  }
+});
+
+bot.onText(/\/estadisticas_duplicados/, async (msg) => {
+  try {
+    const estadisticas = detectorDuplicados.obtenerEstadisticas();
+    await bot.sendMessage(msg.chat.id, estadisticas, { parse_mode: 'Markdown' });
+  } catch (error) {
+    await bot.sendMessage(msg.chat.id, `❌ Error obteniendo estadísticas: ${error.message}`);
+  }
+});
+
+bot.onText(/\/revisar_omitidos/, async (msg) => {
+  try {
+    const mensaje = `🔍 **Funciones de Revisión**\n\n` +
+                   `• /omitidos - Omisiones de hoy\n` +
+                   `• /estadisticas_duplicados - Métricas del sistema\n\n` +
+                   `📊 Use estos comandos para revisar el funcionamiento del detector de duplicados.\n` +
+                   `Los archivos detallados se guardan en: ./logs/omisiones/`;
+    
+    await bot.sendMessage(msg.chat.id, mensaje, { parse_mode: 'Markdown' });
+  } catch (error) {
+    await bot.sendMessage(msg.chat.id, `❌ Error: ${error.message}`);
+  }
+});
+
+bot.onText(/\/tweets_enviados/, async (msg) => {
+  try {
+    const lista = detectorDuplicados.obtenerTweetsEnviados();
+    await bot.sendMessage(msg.chat.id, lista, { parse_mode: 'Markdown' });
+  } catch (error) {
+    await bot.sendMessage(msg.chat.id, `❌ Error obteniendo tweets enviados: ${error.message}`);
+  }
 });
 
 // Funciones para envío dual (Telegram + WhatsApp)
@@ -1073,7 +1132,7 @@ async function monitorearListaX() {
   let page = null;
   
   try {
-    // Opciones mejoradas para estabilidad
+    // Opciones mejoradas para estabilidad y background
     const browserOptions = {
       headless: false,
       args: [
@@ -1082,14 +1141,22 @@ async function monitorearListaX() {
         '--disable-dev-shm-usage',
         '--disable-web-security',
         '--disable-features=VizDisplayCompositor',
+        // OPTIMIZACIÓN PARA BACKGROUND - permite minimizar sin perder funcionalidad
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
+        '--disable-background-media-suspend',
+        '--disable-hang-monitor',
+        '--enable-aggressive-domstorage-flushing',
+        '--disable-features=CalculateNativeWinOcclusion',
         '--disable-field-trial-config',
-        '--disable-ipc-flooding-protection'
+        '--disable-ipc-flooding-protection',
+        // VENTANA COMPACTA - se puede minimizar fácilmente
+        '--window-size=900,700',
+        '--window-position=100,100'
       ],
       timeout: 60000, // 60 segundos timeout
-      slowMo: 100 // Pequeña pausa entre acciones
+      slowMo: 50 // Más rápido pero estable
     };
 
     console.log('🔧 Configurando contexto del navegador...');
@@ -1289,6 +1356,32 @@ async function monitorearListaX() {
         const media = await tweetElement.$('img');
         const video = await tweetElement.$('video');
         
+        // VERIFICACIÓN DE DUPLICADOS - Nuevo sistema inteligente
+        let mediaUrl = '';
+        if (media) {
+          try {
+            mediaUrl = await media.getAttribute('src') || '';
+          } catch (e) {
+            mediaUrl = '';
+          }
+        } else if (video) {
+          mediaUrl = 'video_detected';
+        }
+        
+        const tweetParaVerificar = {
+          texto: textoTweet,
+          usuario: autor,
+          url: url.startsWith('http') ? url : `https://x.com${url}`,
+          mediaUrl: mediaUrl
+        };
+        
+        const resultadoDuplicado = await detectorDuplicados.verificarDuplicado(tweetParaVerificar);
+        
+        if (resultadoDuplicado.esDuplicado) {
+          // Tweet omitido por duplicado - continuar con el siguiente
+          continue;
+        }
+        
         // Agregar al historial tradicional también
         historialTweets.add(url);
 
@@ -1331,6 +1424,9 @@ async function monitorearListaX() {
               // Enviar solo texto + video (SIN enlace) CON ID a ambos canales
               await enviarVideoDual(rutaVideo, `${textoTweet}\n\n📊 ${nombreColumna}\n🆔 ${tweetId}`);
               
+              // REGISTRAR TWEET ENVIADO EXITOSAMENTE
+              detectorDuplicados.registrarTweetEnviado(tweetParaVerificar, tweetId, nombreColumna, 'video');
+              
               console.log(`✅ Video enviado [${tweetId}] - ${nombreColumna}`);
               tweetsEncontrados++;
               
@@ -1339,6 +1435,10 @@ async function monitorearListaX() {
               await enviarMensajeDual(
                 `${textoTweet}\n\n⚠️ Video no se pudo descargar\n📊 ${nombreColumna}\n🆔 ${tweetId}`
               );
+              
+              // REGISTRAR TWEET ENVIADO EXITOSAMENTE (aunque sin video)
+              detectorDuplicados.registrarTweetEnviado(tweetParaVerificar, tweetId, nombreColumna, 'video_fallido');
+              
               tweetsEncontrados++;
             }
           } catch (error) {
@@ -1346,6 +1446,10 @@ async function monitorearListaX() {
             await enviarMensajeDual(
               `${textoTweet}\n\n❌ Error descargando video\n📊 ${nombreColumna}\n🆔 ${tweetId}`
             );
+            
+            // REGISTRAR TWEET ENVIADO EXITOSAMENTE (aunque con error)
+            detectorDuplicados.registrarTweetEnviado(tweetParaVerificar, tweetId, nombreColumna, 'video_error');
+            
             tweetsEncontrados++;
           }
           
@@ -1423,6 +1527,9 @@ async function monitorearListaX() {
               // ✅ ÉXITO: Enviar texto + imagen (SIN enlace) CON ID a ambos canales
               await enviarImagenDual(rutaImagen, `${textoTweet}\n\n📊 ${nombreColumna}\n🆔 ${tweetId}`);
               
+              // REGISTRAR TWEET ENVIADO EXITOSAMENTE
+              detectorDuplicados.registrarTweetEnviado(tweetParaVerificar, tweetId, nombreColumna, 'imagen');
+              
               console.log(`✅ [${tweetId}] Imagen enviada - ${nombreColumna}`);
               tweetsEncontrados++;
             } else {
@@ -1431,6 +1538,10 @@ async function monitorearListaX() {
               await enviarMensajeDual(
                 `${textoTweet}\n\n🔗 ${tweetUrlCompleta}\n⚠️ Imagen no se pudo descargar - consultar en enlace\n📊 ${nombreColumna}\n🆔 ${tweetId}`
               );
+              
+              // REGISTRAR TWEET ENVIADO EXITOSAMENTE (aunque sin imagen)
+              detectorDuplicados.registrarTweetEnviado(tweetParaVerificar, tweetId, nombreColumna, 'imagen_fallida');
+              
               tweetsEncontrados++;
             }
           } catch (error) {
@@ -1439,6 +1550,10 @@ async function monitorearListaX() {
             await enviarMensajeDual(
               `${textoTweet}\n\n🔗 ${tweetUrlCompleta}\n❌ Error procesando imagen - consultar en enlace\n📊 ${nombreColumna}\n🆔 ${tweetId}`
             );
+            
+            // REGISTRAR TWEET ENVIADO EXITOSAMENTE (aunque con error)
+            detectorDuplicados.registrarTweetEnviado(tweetParaVerificar, tweetId, nombreColumna, 'imagen_error');
+            
             tweetsEncontrados++;
           }
           
@@ -1454,6 +1569,10 @@ async function monitorearListaX() {
         registrarURLEnLog(tweetUrlCompleta, 'TEXTO', palabrasEncontradas, autor, tweetId, nombreColumna);
         
         await enviarMensajeDual(`${textoTweet}\n\n🔗 ${tweetUrlCompleta}\n📊 ${nombreColumna}\n🆔 ${tweetId}`);
+        
+        // REGISTRAR TWEET ENVIADO EXITOSAMENTE
+        detectorDuplicados.registrarTweetEnviado(tweetParaVerificar, tweetId, nombreColumna, 'texto');
+        
         tweetsEncontrados++;
         console.log(`✅ Enviado [${tweetId}] - ${nombreColumna}`);
       }
@@ -1514,6 +1633,9 @@ crearCarpetas();
 
 // Limpiar archivos si es lunes
 limpiarArchivosLunes();
+
+// Limpiar archivos de duplicados si es lunes
+detectorDuplicados.limpiezaSemanal();
 
 if (!cargarPalabrasClave()) {
   console.error('❌ Error crítico: No se pudieron cargar las palabras clave');
