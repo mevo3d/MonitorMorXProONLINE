@@ -1,3 +1,7 @@
+// ARCHIVO DESHABILITADO - Sistema configurado para usar solo Telegram
+// Para reactivar WhatsApp, descomente este archivo y las referencias en index.js
+
+/*
 // WhatsAppMejorado.js - Módulo optimizado para mantener conexión estable
 import pkg from 'whatsapp-web.js';
 const { Client, LocalAuth, MessageMedia } = pkg;
@@ -17,6 +21,7 @@ class WhatsAppBotMejorado {
     this.heartbeatInterval = null;
     this.connectionCheckInterval = null;
     this.lastDisconnectNotification = 0;
+    this.lastInitErrorNotification = 0;
     this.sessionBackupPath = './sesion-whatsapp-backup';
     
     // Telegram para notificaciones
@@ -40,6 +45,7 @@ class WhatsAppBotMejorado {
       maxReconnectDelay: 300000, // 5 minutos máximo
       qrRefreshInterval: 20000, // 20 segundos para QR
       notificationCooldown: 300000, // 5 minutos entre notificaciones
+      initErrorCooldown: 600000, // 10 minutos entre notificaciones de error de inicialización
       keepaliveInterval: 600000 // 10 minutos entre keepalives manuales
     };
     
@@ -49,100 +55,44 @@ class WhatsAppBotMejorado {
         fs.mkdirSync(dir, { recursive: true });
       }
     });
-    
-    this.cargarEstadisticas();
-  }
-
-  // Método para registrar actividad y evitar keepalives innecesarios
-  registrarActividad() {
-    this.lastActivity = Date.now();
-  }
-
-  cargarEstadisticas() {
-    try {
-      const statsPath = './whatsapp-stats.json';
-      if (fs.existsSync(statsPath)) {
-        const data = fs.readFileSync(statsPath, 'utf8');
-        const savedStats = JSON.parse(data);
-        this.stats = { ...this.stats, ...savedStats };
-        console.log('📊 Estadísticas cargadas:', {
-          reconexiones: this.stats.totalReconnects,
-          mensajes: this.stats.totalMessagessSent
-        });
-      }
-    } catch (error) {
-      console.log('⚠️ No se pudieron cargar estadísticas previas');
-    }
-  }
-
-  guardarEstadisticas() {
-    try {
-      const statsPath = './whatsapp-stats.json';
-      fs.writeFileSync(statsPath, JSON.stringify(this.stats, null, 2));
-    } catch (error) {
-      console.error('❌ Error guardando estadísticas:', error.message);
-    }
-  }
-
-  async notificarTelegram(mensaje, esCritico = false) {
-    try {
-      const ahora = Date.now();
-      // Evitar spam de notificaciones
-      if (!esCritico && (ahora - this.lastDisconnectNotification) < this.config.notificationCooldown) {
-        return;
-      }
-      
-      await this.telegramBot.sendMessage(this.telegramChatId, mensaje, { parse_mode: 'Markdown' });
-      
-      if (!esCritico) {
-        this.lastDisconnectNotification = ahora;
-      }
-    } catch (error) {
-      console.error('❌ Error enviando notificación a Telegram:', error.message);
-    }
   }
 
   async inicializar() {
     try {
-      console.log('🚀 Iniciando WhatsApp mejorado...');
+      console.log('🚀 Iniciando WhatsApp Bot Mejorado...');
       
-      // Intentar restaurar sesión de backup si existe
-      await this.restaurarSesionBackup();
+      // Restaurar respaldo si la sesión principal está corrupta
+      await this.restaurarSesionSiNecesario();
       
+      // Configuración del cliente con opciones optimizadas
       this.client = new Client({
         authStrategy: new LocalAuth({
-          clientId: 'monitor-xpro-mejorado',
+          clientId: 'whatsapp-bot-mejorado',
           dataPath: this.sessionPath
         }),
         puppeteer: {
-          headless: false,
+          headless: true,
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
             '--disable-gpu',
             '--disable-web-security',
-            '--disable-features=VizDisplayCompositor',
-            // Mantener activo en segundo plano
+            '--disable-features=IsolateOrigins,site-per-process',
+            '--shm-size=3gb',
             '--disable-background-timer-throttling',
             '--disable-backgrounding-occluded-windows',
             '--disable-renderer-backgrounding',
-            '--disable-features=CalculateNativeWinOcclusion',
-            '--window-size=1280,800',
-            '--window-position=100,100'
+            '--disable-features=TranslateUI',
+            '--disable-ipc-flooding-protection',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--no-default-browser-check'
           ],
-          timeout: 90000,
           defaultViewport: null,
-          // Mantener navegador activo
-          pipe: true,
-          dumpio: false
+          timeout: 120000 // 2 minutos de timeout
         },
-        // Configuración de reintentos mejorada
-        restartOnAuthFail: true,
-        qrMaxRetries: 5,
-        takeoverOnConflict: true,
         webVersionCache: {
           type: 'remote',
           remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html',
@@ -150,642 +100,590 @@ class WhatsAppBotMejorado {
       });
 
       this.configurarEventos();
-      await this.client.initialize();
+      
+      // Inicializar con timeout
+      const initPromise = this.client.initialize();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout de inicialización')), 180000) // 3 minutos
+      );
+      
+      await Promise.race([initPromise, timeoutPromise]);
+      
+      // Esperar un poco más para asegurar estabilidad
+      await new Promise(resolve => setTimeout(resolve, 5000));
       
       return true;
+      
     } catch (error) {
       console.error('❌ Error inicializando WhatsApp:', error.message);
-      await this.notificarTelegram(
-        `❌ *WhatsApp Error Inicialización*\n\n` +
-        `Error: ${error.message}\n` +
-        `Hora: ${new Date().toLocaleString('es-MX')}`,
-        true
-      );
+      
+      // Notificar solo si ha pasado suficiente tiempo desde la última notificación
+      const ahora = Date.now();
+      if (ahora - this.lastInitErrorNotification > this.config.initErrorCooldown) {
+        await this.notificarTelegram(`⚠️ WhatsApp: Error inicializando - ${error.message}`);
+        this.lastInitErrorNotification = ahora;
+      }
+      
+      this.stats.errors.push({
+        timestamp: new Date().toISOString(),
+        error: error.message,
+        type: 'initialization'
+      });
+      
       return false;
     }
   }
 
-  async restaurarSesionBackup() {
-    try {
-      if (fs.existsSync(this.sessionBackupPath) && !fs.existsSync(this.sessionPath)) {
-        console.log('🔄 Restaurando sesión desde backup...');
-        // Copiar archivos de backup
-        const files = fs.readdirSync(this.sessionBackupPath);
-        files.forEach(file => {
-          const src = path.join(this.sessionBackupPath, file);
-          const dest = path.join(this.sessionPath, file);
-          fs.copyFileSync(src, dest);
-        });
-        console.log('✅ Sesión restaurada desde backup');
+  configurarEventos() {
+    // Evento: Cliente listo
+    this.client.on('ready', async () => {
+      console.log('✅ WhatsApp Bot Mejorado listo y conectado!');
+      this.isReady = true;
+      this.reconnectAttempts = 0;
+      this.stats.lastConnectionTime = new Date().toISOString();
+      
+      // Hacer backup de la sesión cuando esté lista
+      await this.hacerBackupSesion();
+      
+      // Solo notificar si es una reconexión (no la primera vez)
+      if (this.stats.totalReconnects > 0) {
+        await this.notificarTelegram('✅ WhatsApp: Reconectado exitosamente');
       }
-    } catch (error) {
-      console.error('❌ Error restaurando backup:', error.message);
+      
+      // Iniciar sistemas de mantenimiento
+      this.iniciarHeartbeat();
+      this.iniciarVerificacionConexion();
+      this.iniciarKeepaliveAutomatico();
+      
+      // Verificar chat configurado
+      if (!this.chatId) {
+        console.log('⚠️ WHATSAPP_CHAT_ID no configurado en .env');
+        await this.notificarTelegram('⚠️ WhatsApp conectado pero falta configurar WHATSAPP_CHAT_ID');
+      } else {
+        console.log(`📱 Chat configurado: ${this.chatId}`);
+      }
+    });
+
+    // Evento: QR Code (requerido para autenticación)
+    this.client.on('qr', async (qr) => {
+      console.log('📱 QR Code recibido - Escanear para autenticar');
+      console.log(qr); // Mostrar QR en consola
+      
+      // Notificar a Telegram con el QR
+      await this.notificarTelegram(
+        `📱 WhatsApp requiere autenticación\\n\\n` +
+        `QR Code:\\n\`\`\`${qr}\`\`\`\\n\\n` +
+        `Escanea con WhatsApp para continuar`
+      );
+    });
+
+    // Evento: Autenticado
+    this.client.on('authenticated', () => {
+      console.log('🔐 WhatsApp autenticado correctamente');
+    });
+
+    // Evento: Error de autenticación
+    this.client.on('auth_failure', async (msg) => {
+      console.error('❌ Error de autenticación:', msg);
+      await this.notificarTelegram(`❌ WhatsApp: Error de autenticación - ${msg}`);
+      
+      // Limpiar sesión corrupta
+      await this.limpiarSesion();
+    });
+
+    // Evento: Desconexión
+    this.client.on('disconnected', async (reason) => {
+      console.log('🔌 WhatsApp desconectado:', reason);
+      this.isReady = false;
+      
+      // Detener sistemas de mantenimiento
+      this.detenerHeartbeat();
+      this.detenerVerificacionConexion();
+      
+      const ahora = Date.now();
+      
+      // Solo notificar si ha pasado suficiente tiempo desde la última notificación
+      if (ahora - this.lastDisconnectNotification > this.config.notificationCooldown) {
+        await this.notificarTelegram(`⚠️ WhatsApp desconectado: ${reason}. Intentando reconectar...`);
+        this.lastDisconnectNotification = ahora;
+      }
+      
+      // Intentar reconectar automáticamente con backoff exponencial
+      await this.reconectarConBackoff();
+    });
+
+    // Evento: Cambio de estado
+    this.client.on('change_state', state => {
+      console.log(`📊 WhatsApp estado: ${state}`);
+      
+      if (state === 'CONNECTED') {
+        this.isReady = true;
+      } else if (state === 'UNPAIRED' || state === 'UNPAIRED_IDLE') {
+        this.isReady = false;
+      }
+    });
+
+    // Evento: Error general
+    this.client.on('error', async (error) => {
+      console.error('❌ Error WhatsApp:', error.message);
+      
+      this.stats.errors.push({
+        timestamp: new Date().toISOString(),
+        error: error.message,
+        type: 'runtime'
+      });
+      
+      // Solo notificar errores críticos
+      if (error.message.includes('TIMEOUT') || 
+          error.message.includes('Protocol error') ||
+          error.message.includes('Target closed')) {
+        
+        const ahora = Date.now();
+        if (ahora - this.lastDisconnectNotification > this.config.notificationCooldown) {
+          await this.notificarTelegram(`❌ WhatsApp error crítico: ${error.message.substring(0, 100)}`);
+          this.lastDisconnectNotification = ahora;
+        }
+      }
+    });
+
+    // Evento: Mensajes (para debugging)
+    this.client.on('message', msg => {
+      console.log(`💬 Mensaje recibido de ${msg.from}: ${msg.body.substring(0, 50)}...`);
+      this.lastActivity = Date.now();
+    });
+  }
+
+  // Sistema de Heartbeat para mantener conexión activa
+  iniciarHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+    }
+    
+    this.heartbeatInterval = setInterval(async () => {
+      if (this.isReady) {
+        try {
+          // Verificar estado del cliente
+          const state = await this.client.getState();
+          console.log(`💓 Heartbeat - Estado: ${state} - Última actividad: ${this.formatearTiempoTranscurrido()}`);
+          
+          // Si ha pasado mucho tiempo sin actividad, enviar keepalive
+          if (Date.now() - this.lastActivity > this.config.inactivityTimeout) {
+            await this.enviarKeepalive();
+          }
+          
+        } catch (error) {
+          console.error('❌ Error en heartbeat:', error.message);
+          this.isReady = false;
+        }
+      }
+    }, this.config.heartbeatInterval);
+  }
+
+  detenerHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
     }
   }
 
-  async crearBackupSesion() {
+  // Verificación periódica de conexión
+  iniciarVerificacionConexion() {
+    if (this.connectionCheckInterval) {
+      clearInterval(this.connectionCheckInterval);
+    }
+    
+    this.connectionCheckInterval = setInterval(async () => {
+      if (this.isReady) {
+        try {
+          // Intentar obtener información del cliente
+          const info = await this.client.info;
+          if (info) {
+            console.log(`✅ Verificación de conexión OK - ${new Date().toLocaleTimeString()}`);
+          } else {
+            throw new Error('No se pudo obtener información del cliente');
+          }
+        } catch (error) {
+          console.error('❌ Verificación de conexión falló:', error.message);
+          this.isReady = false;
+          await this.reconectarConBackoff();
+        }
+      }
+    }, this.config.connectionCheckInterval);
+  }
+
+  detenerVerificacionConexion() {
+    if (this.connectionCheckInterval) {
+      clearInterval(this.connectionCheckInterval);
+      this.connectionCheckInterval = null;
+    }
+  }
+
+  // Keepalive automático para prevenir desconexiones
+  iniciarKeepaliveAutomatico() {
+    setInterval(async () => {
+      if (this.isReady) {
+        await this.enviarKeepalive();
+      }
+    }, this.config.keepaliveInterval);
+  }
+
+  async enviarKeepalive() {
+    try {
+      // Enviar un mensaje keepalive invisible (a nosotros mismos)
+      const myNumber = this.client.info?.wid?.user;
+      if (myNumber) {
+        await this.client.sendMessage(`${myNumber}@c.us`, '🔄 Keepalive');
+        console.log('🔄 Keepalive enviado');
+        this.lastActivity = Date.now();
+      }
+    } catch (error) {
+      console.error('❌ Error enviando keepalive:', error.message);
+    }
+  }
+
+  // Reconexión con backoff exponencial mejorado
+  async reconectarConBackoff() {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('❌ Máximo de intentos de reconexión alcanzado');
+      await this.notificarTelegram('❌ WhatsApp: No se pudo reconectar después de 10 intentos');
+      return false;
+    }
+
+    this.reconnectAttempts++;
+    this.stats.totalReconnects++;
+    
+    // Calcular delay con backoff exponencial pero con límite
+    const delay = Math.min(
+      this.config.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
+      this.config.maxReconnectDelay
+    );
+    
+    console.log(`⏳ Reconexión intento ${this.reconnectAttempts}/${this.maxReconnectAttempts} en ${delay/1000} segundos...`);
+    
+    await new Promise(resolve => setTimeout(resolve, delay));
+    
+    try {
+      // Intentar destruir el cliente anterior si existe
+      if (this.client) {
+        try {
+          await this.client.destroy();
+        } catch (e) {
+          console.log('⚠️ No se pudo destruir cliente anterior:', e.message);
+        }
+      }
+      
+      // Reinicializar
+      const success = await this.inicializar();
+      
+      if (success) {
+        console.log('✅ Reconexión exitosa');
+        return true;
+      } else {
+        // Intentar de nuevo
+        return await this.reconectarConBackoff();
+      }
+      
+    } catch (error) {
+      console.error('❌ Error en reconexión:', error.message);
+      return await this.reconectarConBackoff();
+    }
+  }
+
+  // Backup y restauración de sesión
+  async hacerBackupSesion() {
     try {
       if (fs.existsSync(this.sessionPath)) {
-        console.log('💾 Creando backup de sesión...');
-        // Limpiar backup anterior
-        if (fs.existsSync(this.sessionBackupPath)) {
-          fs.rmSync(this.sessionBackupPath, { recursive: true, force: true });
-        }
-        fs.mkdirSync(this.sessionBackupPath, { recursive: true });
+        // Copiar toda la carpeta de sesión
+        const copiarDirectorio = (src, dest) => {
+          if (!fs.existsSync(dest)) {
+            fs.mkdirSync(dest, { recursive: true });
+          }
+          
+          const archivos = fs.readdirSync(src);
+          for (const archivo of archivos) {
+            const srcPath = path.join(src, archivo);
+            const destPath = path.join(dest, archivo);
+            
+            if (fs.lstatSync(srcPath).isDirectory()) {
+              copiarDirectorio(srcPath, destPath);
+            } else {
+              fs.copyFileSync(srcPath, destPath);
+            }
+          }
+        };
         
-        // Copiar archivos de sesión
-        const files = fs.readdirSync(this.sessionPath);
-        files.forEach(file => {
-          const src = path.join(this.sessionPath, file);
-          const dest = path.join(this.sessionBackupPath, file);
-          fs.copyFileSync(src, dest);
-        });
-        console.log('✅ Backup de sesión creado');
+        copiarDirectorio(this.sessionPath, this.sessionBackupPath);
+        console.log('💾 Backup de sesión WhatsApp creado');
       }
     } catch (error) {
       console.error('❌ Error creando backup:', error.message);
     }
   }
 
-  configurarEventos() {
-    let qrCount = 0;
-    let qrTimer = null;
-
-    // Evento QR con mejor manejo
-    this.client.on('qr', (qr) => {
-      qrCount++;
-      console.log(`🔳 QR Code recibido (intento ${qrCount}/5)`);
-      
-      // Notificar solo en el primer QR
-      if (qrCount === 1) {
-        this.notificarTelegram(
-          `📱 *WhatsApp requiere escanear QR*\n\n` +
-          `Por favor, abre WhatsApp en tu teléfono y escanea el código QR en la ventana del navegador.\n\n` +
-          `⏰ Tienes 2 minutos para escanearlo.`,
-          true
-        );
-      }
-      
-      // Timeout para QR
-      if (qrTimer) clearTimeout(qrTimer);
-      qrTimer = setTimeout(() => {
-        if (!this.isReady && qrCount >= 5) {
-          console.log('❌ Timeout esperando escaneo de QR');
-          this.notificarTelegram(
-            `❌ *WhatsApp QR Timeout*\n\n` +
-            `No se escaneó el código QR a tiempo.\n` +
-            `El sistema reintentará automáticamente.`,
-            true
-          );
-        }
-      }, 120000); // 2 minutos
-    });
-
-    // Cliente listo
-    this.client.on('ready', async () => {
-      console.log('✅ WhatsApp Cliente listo!');
-      this.isReady = true;
-      this.reconnectAttempts = 0;
-      this.lastActivity = Date.now();
-      qrCount = 0;
-      
-      if (qrTimer) clearTimeout(qrTimer);
-      
-      // Información del cliente
-      const clientInfo = this.client.info;
-      const mensaje = `✅ *WhatsApp Conectado*\n\n` +
-                     `📱 Usuario: ${clientInfo.pushname}\n` +
-                     `📞 Número: ${clientInfo.wid.user}\n` +
-                     `🔄 Reconexiones totales: ${this.stats.totalReconnects}\n` +
-                     `📊 Mensajes enviados: ${this.stats.totalMessagessSent}\n` +
-                     `🕐 Hora: ${new Date().toLocaleString('es-MX')}`;
-      
-      await this.notificarTelegram(mensaje, true);
-      
-      // Validar chat
-      if (this.chatId) {
-        await this.validarChatId();
-      }
-      
-      // Crear backup de sesión exitosa
-      await this.crearBackupSesion();
-      
-      // Iniciar sistemas de mantenimiento
-      this.iniciarHeartbeat();
-      this.iniciarVerificacionConexion();
-      
-      // Actualizar estadísticas
-      this.stats.lastConnectionTime = new Date().toISOString();
-      this.guardarEstadisticas();
-    });
-
-    // Autenticación exitosa
-    this.client.on('authenticated', () => {
-      console.log('🔐 WhatsApp autenticado correctamente');
-      this.registrarActividad();
-    });
-
-    // Error de autenticación
-    this.client.on('auth_failure', async (msg) => {
-      console.error('❌ Fallo de autenticación WhatsApp:', msg);
-      this.isReady = false;
-      
-      await this.notificarTelegram(
-        `❌ *WhatsApp Error Autenticación*\n\n` +
-        `Razón: ${msg}\n` +
-        `Se requiere escanear QR nuevamente.`,
-        true
-      );
-      
-      // Limpiar sesión corrupta
-      await this.limpiarSesion();
-    });
-
-    // Cliente desconectado
-    this.client.on('disconnected', async (reason) => {
-      console.log('⚠️ WhatsApp desconectado:', reason);
-      this.isReady = false;
-      this.detenerMantenimiento();
-      
-      await this.notificarTelegram(
-        `⚠️ *WhatsApp Desconectado*\n\n` +
-        `Razón: ${reason}\n` +
-        `Intentando reconexión automática...\n` +
-        `Intento: ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts}`
-      );
-      
-      // Incrementar contador de reconexiones
-      this.stats.totalReconnects++;
-      this.guardarEstadisticas();
-      
-      // Intentar reconexión automática
-      await this.intentarReconexion();
-    });
-
-    // Cambio de estado
-    this.client.on('change_state', (state) => {
-      // Solo mostrar cambios importantes
-      if (state === 'CONFLICT' || state === 'UNLAUNCHED' || state === 'CONNECTED') {
-        console.log('🔄 Estado WhatsApp:', state);
-      }
-      this.registrarActividad();
-      
-      // Si está en conflicto, forzar reconexión
-      if (state === 'CONFLICT' || state === 'UNLAUNCHED') {
-        console.log('⚠️ Conflicto detectado, forzando reconexión...');
-        this.intentarReconexion();
-      }
-    });
-
-    // Mensajes recibidos
-    this.client.on('message', async (message) => {
-      this.registrarActividad();
-      
-      // Comandos de control
-      if (message.body === '/status') {
-        const uptime = this.calcularUptime();
-        const info = `📊 *Monitor X Pro - Estado WhatsApp*\n\n` +
-                    `✅ Estado: Conectado\n` +
-                    `⏱️ Uptime: ${uptime}\n` +
-                    `🔄 Reconexiones: ${this.stats.totalReconnects}\n` +
-                    `📨 Mensajes enviados: ${this.stats.totalMessagessSent}\n` +
-                    `🕐 Última actividad: ${new Date(this.lastActivity).toLocaleTimeString('es-MX')}\n` +
-                    `📱 Versión: ${this.client.info.phone.wa_version}`;
-        await message.reply(info);
-      }
-      
-      if (message.body === '/ping') {
-        await message.reply('🤖 Monitor X Pro activo ✅');
-      }
-      
-      if (message.body === '/help') {
-        const help = `📋 *Comandos disponibles:*\n\n` +
-                    `/status - Estado del sistema\n` +
-                    `/ping - Verificar conexión\n` +
-                    `/stats - Estadísticas detalladas\n` +
-                    `/help - Esta ayuda`;
-        await message.reply(help);
-      }
-      
-      if (message.body === '/stats') {
-        const stats = `📈 *Estadísticas WhatsApp*\n\n` +
-                     `📊 Total reconexiones: ${this.stats.totalReconnects}\n` +
-                     `📨 Mensajes enviados: ${this.stats.totalMessagessSent}\n` +
-                     `🕐 Última conexión: ${this.stats.lastConnectionTime ? new Date(this.stats.lastConnectionTime).toLocaleString('es-MX') : 'N/A'}\n` +
-                     `❌ Errores registrados: ${this.stats.errors.length}`;
-        await message.reply(stats);
-      }
-    });
-
-    // Errores generales
-    this.client.on('error', async (error) => {
-      console.error('❌ Error en cliente WhatsApp:', error);
-      this.stats.errors.push({
-        timestamp: new Date().toISOString(),
-        error: error.message
-      });
-      
-      // Mantener solo los últimos 50 errores
-      if (this.stats.errors.length > 50) {
-        this.stats.errors = this.stats.errors.slice(-50);
-      }
-      
-      this.guardarEstadisticas();
-    });
-
-    // Eventos adicionales para mejor monitoreo (silencioso)
-    this.client.on('loading_screen', (percent, message) => {
-      // Solo mostrar cuando esté completamente cargado
-      if (percent === 100) {
-        console.log('✅ WhatsApp cargado completamente');
-      }
-      this.registrarActividad();
-    });
-
-    this.client.on('remote_session_saved', () => {
-      console.log('💾 Sesión remota guardada');
-      this.crearBackupSesion();
-    });
-  }
-
-  iniciarHeartbeat() {
-    console.log('💓 Sistema de mantenimiento iniciado (silencioso)');
-    
-    let keepaliveCount = 0;
-    let lastKeepalive = Date.now();
-    let firstKeepaliveDone = false;
-    
-    this.heartbeatInterval = setInterval(async () => {
-      if (!this.isReady) return;
-      
-      try {
-        // Verificar estado solo si ha pasado tiempo suficiente
-        const ahora = Date.now();
-        const timeSinceLastKeepalive = ahora - lastKeepalive;
+  async restaurarSesionSiNecesario() {
+    try {
+      // Si no hay sesión principal pero sí backup, restaurar
+      if (!fs.existsSync(this.sessionPath) && fs.existsSync(this.sessionBackupPath)) {
+        console.log('🔄 Restaurando sesión desde backup...');
         
-        // Verificar estado de conexión (silencioso)
-        const state = await this.client.getState();
-        
-        if (state !== 'CONNECTED') {
-          console.log('⚠️ Estado no conectado:', state);
-          await this.intentarReconexion();
-          return;
-        }
-        
-        // Keepalive inteligente: solo cada 10 minutos Y si hay inactividad
-        const inactiveTime = ahora - this.lastActivity;
-        const needsKeepalive = inactiveTime > this.config.inactivityTimeout && 
-                             timeSinceLastKeepalive > this.config.keepaliveInterval;
-        
-        if (needsKeepalive) {
-          keepaliveCount++;
-          
-          // Solo mostrar el PRIMER keepalive, después trabajar silenciosamente
-          if (!firstKeepaliveDone) {
-            console.log(`💓 Sistema keepalive activo - funcionando en segundo plano silenciosamente`);
-            firstKeepaliveDone = true;
+        const copiarDirectorio = (src, dest) => {
+          if (!fs.existsSync(dest)) {
+            fs.mkdirSync(dest, { recursive: true });
           }
           
-          // Acción de keepalive silenciosa
-          await this.client.getState();
-          this.lastActivity = ahora;
-          lastKeepalive = ahora;
-        } else {
-          // Reset contador si hay actividad reciente
-          if (inactiveTime < this.config.inactivityTimeout) {
-            keepaliveCount = 0;
-          }
-        }
-        
-      } catch (error) {
-        console.error('❌ Error en heartbeat:', error.message);
-        await this.intentarReconexion();
-      }
-    }, this.config.heartbeatInterval);
-  }
-
-  iniciarVerificacionConexion() {
-    console.log('🔍 Verificación de conexión iniciada (silenciosa)');
-    
-    let checkCount = 0;
-    let firstCheckDone = false;
-    
-    this.connectionCheckInterval = setInterval(async () => {
-      if (!this.client || !this.isReady) return;
-      
-      checkCount++;
-      
-      try {
-        // Verificar que la página siga activa (silencioso)
-        const page = this.client.pupPage;
-        if (!page || page.isClosed()) {
-          console.log('🚨 Página cerrada detectada');
-          await this.intentarReconexion();
-          return;
-        }
-        
-        // Verificación profunda solo cada 5 checks (cada 10 minutos) - SILENCIOSA
-        if (checkCount % 5 === 0) {
-          const isWhatsAppLoaded = await page.evaluate(() => {
-            return !!(window.Store && window.Store.Chat);
-          });
-          
-          if (!isWhatsAppLoaded) {
-            console.log('⚠️ WhatsApp Web no está cargado correctamente');
-            await this.intentarReconexion();
-          } else {
-            // Solo mostrar la primera verificación exitosa
-            if (!firstCheckDone) {
-              console.log(`✅ Sistema de verificación funcionando correctamente en segundo plano`);
-              firstCheckDone = true;
+          const archivos = fs.readdirSync(src);
+          for (const archivo of archivos) {
+            const srcPath = path.join(src, archivo);
+            const destPath = path.join(dest, archivo);
+            
+            if (fs.lstatSync(srcPath).isDirectory()) {
+              copiarDirectorio(srcPath, destPath);
+            } else {
+              fs.copyFileSync(srcPath, destPath);
             }
-            // Después de la primera, todo silencioso
           }
-        }
+        };
         
-      } catch (error) {
-        if (error.message.includes('Target closed') || 
-            error.message.includes('Session closed') ||
-            error.message.includes('Page has been closed')) {
-          console.log('🚨 Sesión/página cerrada detectada');
-          await this.intentarReconexion();
-        }
-        // Errores menores completamente silenciosos
+        copiarDirectorio(this.sessionBackupPath, this.sessionPath);
+        console.log('✅ Sesión restaurada desde backup');
       }
-    }, this.config.connectionCheckInterval);
-  }
-
-  detenerMantenimiento() {
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-      this.heartbeatInterval = null;
+    } catch (error) {
+      console.error('❌ Error restaurando sesión:', error.message);
     }
-    
-    if (this.connectionCheckInterval) {
-      clearInterval(this.connectionCheckInterval);
-      this.connectionCheckInterval = null;
-    }
-    
-    console.log('🛑 Sistemas de mantenimiento detenidos');
   }
 
   async limpiarSesion() {
     try {
-      this.detenerMantenimiento();
-      
+      // Eliminar sesión corrupta
       if (fs.existsSync(this.sessionPath)) {
-        console.log('🧹 Limpiando sesión corrupta...');
         fs.rmSync(this.sessionPath, { recursive: true, force: true });
-        console.log('✅ Sesión limpiada');
+        console.log('🧹 Sesión limpiada');
       }
+      
+      // Intentar restaurar desde backup
+      await this.restaurarSesionSiNecesario();
+      
     } catch (error) {
       console.error('❌ Error limpiando sesión:', error.message);
     }
   }
 
-  async intentarReconexion() {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('❌ Máximo de reintentos alcanzado');
-      await this.notificarTelegram(
-        `❌ *WhatsApp Reconexión Fallida*\n\n` +
-        `Se alcanzó el máximo de reintentos (${this.maxReconnectAttempts}).\n` +
-        `Por favor, reinicia el sistema manualmente.`,
-        true
-      );
-      return;
-    }
-    
-    this.reconnectAttempts++;
-    
-    // Calcular delay exponencial con límite
-    const delay = Math.min(
-      this.config.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
-      this.config.maxReconnectDelay
-    );
-    
-    console.log(`🔄 Reintentando en ${delay/1000} segundos... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-    
-    setTimeout(async () => {
-      try {
-        // Cerrar cliente anterior si existe
-        if (this.client) {
-          try {
-            await this.client.destroy();
-          } catch (e) {
-            console.log('⚠️ Error cerrando cliente anterior:', e.message);
-          }
-        }
-        
-        // Reinicializar
-        const success = await this.inicializar();
-        
-        if (!success && this.reconnectAttempts < this.maxReconnectAttempts) {
-          // Si falla, intentar de nuevo
-          await this.intentarReconexion();
-        }
-      } catch (error) {
-        console.error('❌ Error en reconexión:', error.message);
-        
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-          await this.intentarReconexion();
-        }
-      }
-    }, delay);
-  }
-
-  async validarChatId() {
-    try {
-      if (!this.chatId) {
-        console.log('⚠️ WHATSAPP_CHAT_ID no configurado');
-        return false;
-      }
-
-      const chat = await this.client.getChatById(this.chatId);
-      if (chat) {
-        console.log(`✅ Chat WhatsApp válido: ${chat.name || 'Chat privado'}`);
-        return true;
-      }
-    } catch (error) {
-      console.error(`❌ Chat ID inválido: ${this.chatId}`, error.message);
-      
-      await this.notificarTelegram(
-        `❌ *WhatsApp Chat ID Inválido*\n\n` +
-        `El ID configurado no es válido: ${this.chatId}\n` +
-        `Por favor, verifica la configuración.`,
-        true
-      );
-      
-      return false;
-    }
-  }
-
-  async enviarMensaje(mensaje, reintentos = 3) {
+  // Funciones de envío de mensajes
+  async enviarMensaje(texto) {
     if (!this.isReady) {
-      console.error('❌ WhatsApp no está listo');
+      console.log('⚠️ WhatsApp no está listo para enviar mensajes');
       return false;
     }
 
     if (!this.chatId) {
-      console.error('❌ WHATSAPP_CHAT_ID no configurado');
+      console.log('⚠️ Chat ID no configurado');
       return false;
     }
 
-    for (let intento = 1; intento <= reintentos; intento++) {
-      try {
-        await this.client.sendMessage(this.chatId, mensaje);
-        console.log('✅ Mensaje WhatsApp enviado');
-        
-        // Registrar actividad - esto evitará keepalives innecesarios
-        this.registrarActividad();
-        this.stats.totalMessagessSent++;
-        this.guardarEstadisticas();
-        
-        return true;
-      } catch (error) {
-        console.error(`❌ Error enviando mensaje (intento ${intento}/${reintentos}):`, error.message);
-        
-        if (intento < reintentos) {
-          // Esperar antes de reintentar
-          await new Promise(resolve => setTimeout(resolve, 2000 * intento));
-          
-          // Verificar si sigue conectado
-          try {
-            const state = await this.client.getState();
-            if (state !== 'CONNECTED') {
-              console.log('⚠️ Reconectando antes de reintentar...');
-              await this.intentarReconexion();
-              return false;
-            }
-          } catch (e) {
-            console.error('❌ Error verificando estado:', e.message);
-          }
-        }
+    try {
+      const chatIdFormateado = this.chatId.includes('@') ? this.chatId : `${this.chatId}@g.us`;
+      await this.client.sendMessage(chatIdFormateado, texto);
+      
+      this.lastActivity = Date.now();
+      this.stats.totalMessagessSent++;
+      
+      console.log('✅ Mensaje enviado por WhatsApp');
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Error enviando mensaje WhatsApp:', error.message);
+      
+      this.stats.errors.push({
+        timestamp: new Date().toISOString(),
+        error: error.message,
+        type: 'send_message'
+      });
+      
+      // Si el error es de conexión, intentar reconectar
+      if (error.message.includes('not ready') || error.message.includes('disconnected')) {
+        this.isReady = false;
+        await this.reconectarConBackoff();
       }
-    }
-    
-    return false;
-  }
-
-  async enviarImagen(rutaImagen, caption = '', reintentos = 3) {
-    if (!this.isReady || !this.chatId) {
-      console.error('❌ WhatsApp no está listo o chatId no configurado');
+      
       return false;
     }
-
-    for (let intento = 1; intento <= reintentos; intento++) {
-      try {
-        const media = MessageMedia.fromFilePath(rutaImagen);
-        await this.client.sendMessage(this.chatId, media, { caption });
-        console.log('✅ Imagen WhatsApp enviada:', path.basename(rutaImagen));
-        
-        this.registrarActividad();
-        this.stats.totalMessagessSent++;
-        this.guardarEstadisticas();
-        
-        return true;
-      } catch (error) {
-        console.error(`❌ Error enviando imagen (intento ${intento}/${reintentos}):`, error.message);
-        
-        if (intento < reintentos) {
-          await new Promise(resolve => setTimeout(resolve, 3000 * intento));
-        }
-      }
-    }
-    
-    return false;
   }
 
-  async enviarVideo(rutaVideo, caption = '', reintentos = 3) {
-    if (!this.isReady || !this.chatId) {
-      console.error('❌ WhatsApp no está listo o chatId no configurado');
-      return false;
-    }
-
-    for (let intento = 1; intento <= reintentos; intento++) {
-      try {
-        const media = MessageMedia.fromFilePath(rutaVideo);
-        await this.client.sendMessage(this.chatId, media, { caption });
-        console.log('✅ Video WhatsApp enviado:', path.basename(rutaVideo));
-        
-        this.registrarActividad();
-        this.stats.totalMessagessSent++;
-        this.guardarEstadisticas();
-        
-        return true;
-      } catch (error) {
-        console.error(`❌ Error enviando video (intento ${intento}/${reintentos}):`, error.message);
-        
-        if (intento < reintentos) {
-          // Mayor delay para videos por su tamaño
-          await new Promise(resolve => setTimeout(resolve, 5000 * intento));
-        }
-      }
-    }
-    
-    return false;
-  }
-
-  calcularUptime() {
-    if (!this.stats.lastConnectionTime) return 'N/A';
-    
-    const ahora = Date.now();
-    const inicio = new Date(this.stats.lastConnectionTime).getTime();
-    const diff = ahora - inicio;
-    
-    const horas = Math.floor(diff / (1000 * 60 * 60));
-    const minutos = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    return `${horas}h ${minutos}m`;
-  }
-
-  async obtenerChats() {
+  async enviarImagen(rutaImagen, caption) {
     if (!this.isReady) {
-      console.error('❌ WhatsApp no está listo');
-      return [];
+      console.log('⚠️ WhatsApp no está listo para enviar imágenes');
+      return false;
+    }
+
+    if (!this.chatId) {
+      console.log('⚠️ Chat ID no configurado');
+      return false;
     }
 
     try {
-      const chats = await this.client.getChats();
-      return chats.slice(0, 20).map(chat => ({
-        id: chat.id._serialized,
-        name: chat.name || 'Chat sin nombre',
-        isGroup: chat.isGroup
-      }));
+      const media = MessageMedia.fromFilePath(rutaImagen);
+      const chatIdFormateado = this.chatId.includes('@') ? this.chatId : `${this.chatId}@g.us`;
+      
+      await this.client.sendMessage(chatIdFormateado, media, { caption });
+      
+      this.lastActivity = Date.now();
+      this.stats.totalMessagessSent++;
+      
+      console.log('✅ Imagen enviada por WhatsApp');
+      return true;
+      
     } catch (error) {
-      console.error('❌ Error obteniendo chats:', error.message);
-      return [];
+      console.error('❌ Error enviando imagen WhatsApp:', error.message);
+      
+      this.stats.errors.push({
+        timestamp: new Date().toISOString(),
+        error: error.message,
+        type: 'send_image'
+      });
+      
+      if (error.message.includes('not ready') || error.message.includes('disconnected')) {
+        this.isReady = false;
+        await this.reconectarConBackoff();
+      }
+      
+      return false;
     }
   }
 
-  async cerrar() {
-    try {
-      console.log('🔴 Cerrando WhatsApp...');
-      
-      this.detenerMantenimiento();
-      
-      // Guardar estadísticas finales
-      this.guardarEstadisticas();
-      
-      if (this.client) {
-        await this.client.destroy();
-        console.log('✅ Cliente WhatsApp cerrado correctamente');
-      }
-    } catch (error) {
-      console.error('❌ Error cerrando WhatsApp:', error.message);
+  async enviarVideo(rutaVideo, caption) {
+    if (!this.isReady) {
+      console.log('⚠️ WhatsApp no está listo para enviar videos');
+      return false;
     }
+
+    if (!this.chatId) {
+      console.log('⚠️ Chat ID no configurado');
+      return false;
+    }
+
+    try {
+      console.log(`📹 Preparando video para WhatsApp: ${rutaVideo}`);
+      
+      // Verificar tamaño del archivo
+      const stats = fs.statSync(rutaVideo);
+      const fileSizeMB = stats.size / (1024 * 1024);
+      
+      if (fileSizeMB > 16) {
+        console.log(`⚠️ Video muy grande para WhatsApp (${fileSizeMB.toFixed(2)} MB). Máximo: 16 MB`);
+        // Enviar solo el mensaje con el caption
+        return await this.enviarMensaje(`${caption}\\n⚠️ Video muy grande para WhatsApp (${fileSizeMB.toFixed(2)} MB)`);
+      }
+      
+      const media = MessageMedia.fromFilePath(rutaVideo);
+      const chatIdFormateado = this.chatId.includes('@') ? this.chatId : `${this.chatId}@g.us`;
+      
+      console.log('📤 Enviando video por WhatsApp...');
+      await this.client.sendMessage(chatIdFormateado, media, { 
+        caption,
+        sendMediaAsDocument: false // Enviar como video, no como documento
+      });
+      
+      this.lastActivity = Date.now();
+      this.stats.totalMessagessSent++;
+      
+      console.log('✅ Video enviado por WhatsApp exitosamente');
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Error enviando video WhatsApp:', error.message);
+      
+      this.stats.errors.push({
+        timestamp: new Date().toISOString(),
+        error: error.message,
+        type: 'send_video'
+      });
+      
+      // Si es error de conexión, intentar reconectar
+      if (error.message.includes('not ready') || error.message.includes('disconnected')) {
+        this.isReady = false;
+        await this.reconectarConBackoff();
+      }
+      
+      // Si es otro tipo de error, intentar enviar solo el mensaje
+      try {
+        console.log('⚠️ Intentando enviar solo el texto del video...');
+        return await this.enviarMensaje(`${caption}\\n⚠️ No se pudo enviar el video`);
+      } catch (e) {
+        console.error('❌ Tampoco se pudo enviar el mensaje de texto:', e.message);
+      }
+      
+      return false;
+    }
+  }
+
+  // Notificación a Telegram
+  async notificarTelegram(mensaje) {
+    try {
+      await this.telegramBot.sendMessage(this.telegramChatId, mensaje, { parse_mode: 'Markdown' });
+    } catch (error) {
+      console.error('❌ Error enviando notificación a Telegram:', error.message);
+    }
+  }
+
+  // Utilidades
+  formatearTiempoTranscurrido() {
+    const ahora = Date.now();
+    const diferencia = ahora - this.lastActivity;
+    const minutos = Math.floor(diferencia / 60000);
+    const segundos = Math.floor((diferencia % 60000) / 1000);
+    return `${minutos}m ${segundos}s`;
   }
 
   getEstado() {
+    const uptime = this.stats.lastConnectionTime 
+      ? this.formatearTiempoDesde(new Date(this.stats.lastConnectionTime))
+      : 'N/A';
+    
     return {
       conectado: this.isReady,
       chatConfigured: !!this.chatId,
       reconnectAttempts: this.reconnectAttempts,
-      lastActivity: new Date(this.lastActivity).toLocaleTimeString('es-MX'),
       totalReconnects: this.stats.totalReconnects,
       totalMessagessSent: this.stats.totalMessagessSent,
-      uptime: this.calcularUptime()
+      uptime,
+      lastActivity: this.formatearTiempoTranscurrido(),
+      errorsCount: this.stats.errors.length,
+      lastErrors: this.stats.errors.slice(-3) // Últimos 3 errores
     };
+  }
+
+  formatearTiempoDesde(fecha) {
+    const ahora = new Date();
+    const diferencia = ahora - fecha;
+    const horas = Math.floor(diferencia / 3600000);
+    const minutos = Math.floor((diferencia % 3600000) / 60000);
+    return `${horas}h ${minutos}m`;
+  }
+
+  async cerrar() {
+    try {
+      console.log('🔌 Cerrando WhatsApp Bot...');
+      
+      // Detener sistemas de mantenimiento
+      this.detenerHeartbeat();
+      this.detenerVerificacionConexion();
+      
+      // Hacer backup final de la sesión
+      await this.hacerBackupSesion();
+      
+      // Cerrar cliente
+      if (this.client) {
+        await this.client.destroy();
+      }
+      
+      this.isReady = false;
+      console.log('✅ WhatsApp Bot cerrado correctamente');
+      
+    } catch (error) {
+      console.error('❌ Error cerrando WhatsApp Bot:', error.message);
+    }
   }
 }
 
 export default WhatsAppBotMejorado;
+*/

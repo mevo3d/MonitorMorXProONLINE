@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(taskkill:*)",
+      "Bash(dir:*)",
+      "Bash(ls:*)",
+      "Bash(copy \"../Monitor-GobiernoMor/keywords.json\" \"../Monitor-GobiernoMor/keywords-backup.json\")",
+      "Bash(xcopy:*)",
+      "Bash(powershell:*)",
+      "Bash(del:*)",
+      "Bash(cmd /c del:*)",
+      "Bash(npm install)",
+      "Bash(copy:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "additionalDirectories": [
+      "C:\\Users\\BALERION\\proyectos-automatizacion"
+    ]
+  }
+}

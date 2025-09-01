@@ -1,0 +1,93 @@
+{
+  "fecha": "2025-08-11",
+  "totalTweets": 4,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "morelos",
+      "cantidad": 4
+    },
+    {
+      "tema": "gobernadora",
+      "cantidad": 3
+    },
+    {
+      "tema": "@margarita_gs",
+      "cantidad": 2
+    },
+    {
+      "tema": "encuentro",
+      "cantidad": 2
+    },
+    {
+      "tema": "brenda",
+      "cantidad": 2
+    },
+    {
+      "tema": "espinoza",
+      "cantidad": 2
+    },
+    {
+      "tema": "lopez",
+      "cantidad": 2
+    },
+    {
+      "tema": "noticias",
+      "cantidad": 1
+    },
+    {
+      "tema": "cuautla",
+      "cantidad": 1
+    },
+    {
+      "tema": "@noticiascuautla",
+      "cantidad": 1
+    },
+    {
+      "tema": "#congresomorelos",
+      "cantidad": 1
+    },
+    {
+      "tema": "agosto",
+      "cantidad": 1
+    },
+    {
+      "tema": "isaac",
+      "cantidad": 1
+    },
+    {
+      "tema": "pimentel",
+      "cantidad": 1
+    },
+    {
+      "tema": "mejía",
+      "cantidad": 1
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "jazmin solano",
+      1
+    ]
+  ],
+  "comisiones": [],
+  "tiposIniciativas": [],
+  "partidosPoliticos": [
+    [
+      "pri",
+      2
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 21,
+      "cantidad": 4
+    }
+  ]
+}

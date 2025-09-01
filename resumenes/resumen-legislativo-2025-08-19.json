@@ -1,0 +1,115 @@
+{
+  "fecha": "2025-08-19",
+  "totalTweets": 8,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "congreso",
+      "cantidad": 9
+    },
+    {
+      "tema": "morelos",
+      "cantidad": 8
+    },
+    {
+      "tema": "estado",
+      "cantidad": 4
+    },
+    {
+      "tema": "isaac",
+      "cantidad": 3
+    },
+    {
+      "tema": "pimentel",
+      "cantidad": 3
+    },
+    {
+      "tema": "segundo",
+      "cantidad": 3
+    },
+    {
+      "tema": "noticias",
+      "cantidad": 3
+    },
+    {
+      "tema": "iniciativas",
+      "cantidad": 3
+    },
+    {
+      "tema": "preferentes",
+      "cantidad": 3
+    },
+    {
+      "tema": "presidencia",
+      "cantidad": 2
+    },
+    {
+      "tema": "mesa",
+      "cantidad": 2
+    },
+    {
+      "tema": "directiva",
+      "cantidad": 2
+    },
+    {
+      "tema": "buscará",
+      "cantidad": 2
+    },
+    {
+      "tema": "unidad",
+      "cantidad": 2
+    },
+    {
+      "tema": "morelos,",
+      "cantidad": 2
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "diputada",
+      1
+    ]
+  ],
+  "comisiones": [
+    [
+      "mesa directiva",
+      2
+    ]
+  ],
+  "tiposIniciativas": [
+    [
+      "iniciativa",
+      3
+    ],
+    [
+      "reforma",
+      1
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "pri",
+      2
+    ],
+    [
+      "pt",
+      2
+    ],
+    [
+      "morena",
+      1
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 19,
+      "cantidad": 8
+    }
+  ]
+}

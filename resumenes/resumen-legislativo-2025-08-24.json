@@ -1,0 +1,96 @@
+{
+  "fecha": "2025-08-24",
+  "totalTweets": 4,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "congreso",
+      "cantidad": 5
+    },
+    {
+      "tema": "trabajo",
+      "cantidad": 4
+    },
+    {
+      "tema": "estado",
+      "cantidad": 3
+    },
+    {
+      "tema": "morelos,",
+      "cantidad": 3
+    },
+    {
+      "tema": "#noticiala",
+      "cantidad": 2
+    },
+    {
+      "tema": "diputada",
+      "cantidad": 2
+    },
+    {
+      "tema": "tania",
+      "cantidad": 2
+    },
+    {
+      "tema": "valentina",
+      "cantidad": 2
+    },
+    {
+      "tema": "rodríguez",
+      "cantidad": 2
+    },
+    {
+      "tema": "ruíz,",
+      "cantidad": 2
+    },
+    {
+      "tema": "coordinadora",
+      "cantidad": 2
+    },
+    {
+      "tema": "grupo",
+      "cantidad": 2
+    },
+    {
+      "tema": "parlamentario",
+      "cantidad": 2
+    },
+    {
+      "tema": "partido",
+      "cantidad": 2
+    },
+    {
+      "tema": "sostuvo",
+      "cantidad": 2
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "diputado",
+      2
+    ],
+    [
+      "diputada",
+      2
+    ]
+  ],
+  "comisiones": [],
+  "tiposIniciativas": [],
+  "partidosPoliticos": [],
+  "horasPico": [
+    {
+      "hora": 15,
+      "cantidad": 3
+    },
+    {
+      "hora": 17,
+      "cantidad": 1
+    }
+  ]
+}

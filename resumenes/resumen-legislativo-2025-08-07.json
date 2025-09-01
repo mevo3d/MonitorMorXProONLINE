@@ -1,0 +1,143 @@
+{
+  "fecha": "2025-08-07",
+  "totalTweets": 16,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "morelos",
+      "cantidad": 14
+    },
+    {
+      "tema": "julio",
+      "cantidad": 11
+    },
+    {
+      "tema": "congreso",
+      "cantidad": 10
+    },
+    {
+      "tema": "diputada",
+      "cantidad": 8
+    },
+    {
+      "tema": "jazmín",
+      "cantidad": 7
+    },
+    {
+      "tema": "solano",
+      "cantidad": 7
+    },
+    {
+      "tema": "mesa",
+      "cantidad": 7
+    },
+    {
+      "tema": "entrega",
+      "cantidad": 7
+    },
+    {
+      "tema": "avance",
+      "cantidad": 6
+    },
+    {
+      "tema": "trabajos",
+      "cantidad": 6
+    },
+    {
+      "tema": "recepción",
+      "cantidad": 6
+    },
+    {
+      "tema": "directiva",
+      "cantidad": 6
+    },
+    {
+      "tema": "informó",
+      "cantidad": 5
+    },
+    {
+      "tema": "municipal",
+      "cantidad": 5
+    },
+    {
+      "tema": "temixco,",
+      "cantidad": 5
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "diputada",
+      8
+    ],
+    [
+      "jazmin solano",
+      2
+    ],
+    [
+      "diputado",
+      1
+    ],
+    [
+      "presidenta del congreso",
+      1
+    ],
+    [
+      "legislador",
+      1
+    ],
+    [
+      "legisladora",
+      1
+    ]
+  ],
+  "comisiones": [
+    [
+      "mesa directiva",
+      7
+    ]
+  ],
+  "tiposIniciativas": [
+    [
+      "iniciativa",
+      2
+    ],
+    [
+      "informe",
+      1
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "pan",
+      2
+    ],
+    [
+      "morena",
+      1
+    ],
+    [
+      "pri",
+      1
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 13,
+      "cantidad": 6
+    },
+    {
+      "hora": 15,
+      "cantidad": 6
+    },
+    {
+      "hora": 14,
+      "cantidad": 3
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "fecha": "2025-08-12",
+  "totalTweets": 5,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "cuernavaca",
+      "cantidad": 3
+    },
+    {
+      "tema": "@andygordillo_",
+      "cantidad": 3
+    },
+    {
+      "tema": "morelos",
+      "cantidad": 2
+    },
+    {
+      "tema": "seguridad",
+      "cantidad": 2
+    },
+    {
+      "tema": "gobernadora",
+      "cantidad": 2
+    },
+    {
+      "tema": "@margarita_gs",
+      "cantidad": 2
+    },
+    {
+      "tema": "andy",
+      "cantidad": 2
+    },
+    {
+      "tema": "gordillo",
+      "cantidad": 2
+    },
+    {
+      "tema": "juntos",
+      "cantidad": 2
+    },
+    {
+      "tema": "@soldecuernavaca",
+      "cantidad": 1
+    },
+    {
+      "tema": "congreso",
+      "cantidad": 1
+    },
+    {
+      "tema": "buscará",
+      "cantidad": 1
+    },
+    {
+      "tema": "apoyar",
+      "cantidad": 1
+    },
+    {
+      "tema": "estrategias",
+      "cantidad": 1
+    },
+    {
+      "tema": "gobierno",
+      "cantidad": 1
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "andy gordillo",
+      2
+    ],
+    [
+      "jazmin solano",
+      1
+    ],
+    [
+      "diputado",
+      1
+    ]
+  ],
+  "comisiones": [],
+  "tiposIniciativas": [],
+  "partidosPoliticos": [
+    [
+      "pri",
+      1
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 12,
+      "cantidad": 2
+    },
+    {
+      "hora": 13,
+      "cantidad": 1
+    },
+    {
+      "hora": 14,
+      "cantidad": 1
+    }
+  ]
+}

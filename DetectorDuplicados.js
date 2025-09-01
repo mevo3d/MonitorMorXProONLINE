@@ -13,6 +13,10 @@ class DetectorDuplicados {
     this.archivoEstadisticas = './logs/estadisticas-duplicados.json';
     this.registroEnviados = new RegistroEnviados(); // Sistema de tweets ENVIADOS
     
+    // Cache para evitar notificaciones repetidas de la misma omisión
+    this.notificacionesEnviadas = new Map(); // hash -> timestamp de última notificación
+    this.ultimoMensajeConsola = new Map(); // hash -> timestamp del último mensaje en consola
+    
     // Telegram para notificaciones
     this.telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
     this.telegramChatId = process.env.TELEGRAM_CHAT_ID;
@@ -27,7 +31,8 @@ class DetectorDuplicados {
       ventanaTiempoLarga: 7 * 24 * 60 * 60 * 1000, // 7 días - solo idénticos
       limpiezaSemanal: true,
       reporteNocturno: '23:59',      // Hora del reporte diario
-      maxCacheSize: 1000             // Máximo elementos en cache
+      maxCacheSize: 1000,            // Máximo elementos en cache
+      tiempoEsperaNotificacion: 3 * 60 * 60 * 1000    // 3 horas sin notificar la misma omisión
     };
     
     // Estadísticas
@@ -275,8 +280,7 @@ class DetectorDuplicados {
     this.omisionesHoy.push(omision);
     this.guardarOmisionEnArchivo(omision);
     
-    // Notificación inmediata
-    await this.notificarOmisionInmediata(omision);
+    // No notificar inmediatamente, solo cuando haya un envío exitoso posterior
     
     // Guardar estadísticas
     this.guardarEstadisticas();
@@ -288,18 +292,81 @@ class DetectorDuplicados {
     };
   }
 
+  // Notificar omisiones pendientes cuando hay un envío exitoso
+  async notificarOmisionesPendientes() {
+    const ahora = Date.now();
+    const omisionesPendientes = this.omisionesHoy.filter(omision => {
+      const tiempoOmision = new Date(omision.timestamp).getTime();
+      return ahora - tiempoOmision < 30 * 60 * 1000; // Solo últimas 30 min
+    });
+    
+    for (const omision of omisionesPendientes) {
+      const hashNotificacion = crypto.createHash('md5')
+        .update(`${omision.tweet.texto}|${omision.tweet.usuario}|${omision.razon}`)
+        .digest('hex');
+      
+      // Solo notificar si no se ha notificado recientemente
+      if (!this.notificacionesEnviadas.has(hashNotificacion)) {
+        await this.notificarOmisionInmediata(omision);
+        break; // Solo una notificación por envío exitoso
+      }
+    }
+  }
+
   async notificarOmisionInmediata(omision) {
     try {
+      // Generar un hash único para esta omisión específica
+      const textoLimpio = this.limpiarTexto(omision.tweet.texto);
+      const hashNotificacion = crypto.createHash('md5')
+        .update(`${textoLimpio}|${omision.tweet.usuario}|${omision.razon}`)
+        .digest('hex');
+      
+      const ahora = Date.now();
+      
+      // Verificar si ya se notificó esta omisión recientemente
+      if (this.notificacionesEnviadas.has(hashNotificacion)) {
+        const ultimaNotificacion = this.notificacionesEnviadas.get(hashNotificacion);
+        const tiempoTranscurrido = ahora - ultimaNotificacion;
+        
+        // Si no han pasado 3 horas, no volver a notificar
+        if (tiempoTranscurrido < this.config.tiempoEsperaNotificacion) {
+          // Solo mostrar mensaje en consola cada 30 minutos para evitar spam
+          const ultimoMensaje = this.ultimoMensajeConsola.get(hashNotificacion) || 0;
+          if (ahora - ultimoMensaje > 30 * 60 * 1000) { // 30 minutos
+            console.log(`🔇 Omisión ya notificada hace ${Math.round(tiempoTranscurrido / (60 * 1000))} min - No se reenvía`);
+            this.ultimoMensajeConsola.set(hashNotificacion, ahora);
+          }
+          return;
+        }
+      }
+      
+      // Registrar esta notificación
+      this.notificacionesEnviadas.set(hashNotificacion, ahora);
+      
+      // Limpiar notificaciones antiguas para evitar acumulación de memoria
+      this.limpiarNotificacionesAntiguas();
+      
       const emoji = omision.razon === 'duplicado_exacto' ? '🔄' : '🔍';
-      const mensaje = `${emoji} **Contenido similar detectado**\n\n` +
-                     `📰 Tema: "${omision.tema}"\n` +
-                     `📺 Medio: ${omision.tweet.usuario}\n` +
-                     `⏰ Original: ${omision.detalles.tweetOriginal.hora}\n` +
-                     `🔄 Similitud: ${omision.detalles.similitud}%\n` +
-                     `📊 Hace: ${omision.detalles.tiempoTranscurrido}\n\n` +
-                     `❌ Se omitirá repostear`;
+      
+      // Formatear hora del tweet omitido
+      const horaFormateada = new Date().toLocaleString('es-MX', {
+        hour: '2-digit',
+        minute: '2-digit',
+        day: '2-digit',
+        month: '2-digit'
+      });
+      
+      const mensaje = `${emoji} **TWEET OMITIDO**\n\n` +
+                     `👤 **Autor**: ${omision.tweet.usuario}\n` +
+                     `⏰ **Hora**: ${horaFormateada}\n` +
+                     `🔄 **Similitud**: ${omision.detalles.similitud}%\n\n` +
+                     `📝 **Texto del tweet omitido**:\n"${omision.tweet.texto.substring(0, 200)}${omision.tweet.texto.length > 200 ? '...' : ''}"\n\n` +
+                     `📊 **Similar a tweet enviado** (${omision.detalles.tiempoTranscurrido} atrás):\n` +
+                     `"${omision.detalles.tweetOriginal.texto.substring(0, 150)}${omision.detalles.tweetOriginal.texto.length > 150 ? '...' : ''}"`;
       
       await this.telegramBot.sendMessage(this.telegramChatId, mensaje, { parse_mode: 'Markdown' });
+      console.log(`📤 Notificación de omisión enviada: ${omision.tema.substring(0, 30)}...`);
+      
     } catch (error) {
       console.error('❌ Error enviando notificación de omisión:', error.message);
     }
@@ -341,6 +408,29 @@ class DetectorDuplicados {
     });
     
     console.log(`🧹 Cache limpiado: ${itemsOrdenados.length} → ${this.cache.size} elementos`);
+  }
+
+  limpiarNotificacionesAntiguas() {
+    const ahora = Date.now();
+    const tiempoLimite = 4 * 60 * 60 * 1000; // 4 horas
+    
+    for (const [hash, timestamp] of this.notificacionesEnviadas.entries()) {
+      if (ahora - timestamp > tiempoLimite) {
+        this.notificacionesEnviadas.delete(hash);
+      }
+    }
+    
+    // Si el mapa sigue muy grande, mantener solo los 500 más recientes
+    if (this.notificacionesEnviadas.size > 500) {
+      const notificacionesOrdenadas = Array.from(this.notificacionesEnviadas.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 300); // Mantener solo 300
+      
+      this.notificacionesEnviadas.clear();
+      notificacionesOrdenadas.forEach(([hash, timestamp]) => {
+        this.notificacionesEnviadas.set(hash, timestamp);
+      });
+    }
   }
 
   guardarOmisionEnArchivo(omision) {
@@ -514,6 +604,10 @@ class DetectorDuplicados {
         // Limpiar cache completamente
         this.cache.clear();
         console.log('🧹 Cache de duplicados limpiado');
+        
+        // Limpiar cache de notificaciones
+        this.notificacionesEnviadas.clear();
+        console.log('🧹 Cache de notificaciones limpiado');
         
         // Limpiar registros de enviados antiguos
         this.registroEnviados.limpiezaSemanal();

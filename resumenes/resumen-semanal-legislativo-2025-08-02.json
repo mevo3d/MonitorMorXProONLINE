@@ -1,0 +1,160 @@
+{
+  "fechaInicio": "2025-08-02",
+  "fechaFin": "2025-08-09",
+  "totalTweets": 29,
+  "totalDuplicados": 0,
+  "promedioTweetsDiarios": 4,
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "diputada",
+      11
+    ],
+    [
+      "diputado",
+      2
+    ],
+    [
+      "jazmin solano",
+      2
+    ],
+    [
+      "rafael reyes",
+      2
+    ],
+    [
+      "presidenta del congreso",
+      1
+    ],
+    [
+      "legislador",
+      1
+    ],
+    [
+      "legisladora",
+      1
+    ]
+  ],
+  "comisiones": [
+    [
+      "mesa directiva",
+      8
+    ]
+  ],
+  "tiposIniciativas": [
+    [
+      "iniciativa",
+      6
+    ],
+    [
+      "informe",
+      1
+    ],
+    [
+      "reforma",
+      1
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "pri",
+      7
+    ],
+    [
+      "morena",
+      4
+    ],
+    [
+      "pan",
+      3
+    ]
+  ],
+  "topTemas": [
+    {
+      "tema": "morelos",
+      "cantidad": 21
+    },
+    {
+      "tema": "congreso",
+      "cantidad": 19
+    },
+    {
+      "tema": "julio",
+      "cantidad": 12
+    },
+    {
+      "tema": "diputada",
+      "cantidad": 11
+    },
+    {
+      "tema": "informó",
+      "cantidad": 10
+    },
+    {
+      "tema": "que,",
+      "cantidad": 10
+    },
+    {
+      "tema": "morelos,",
+      "cantidad": 10
+    },
+    {
+      "tema": "presidente",
+      "cantidad": 9
+    },
+    {
+      "tema": "jazmín",
+      "cantidad": 8
+    },
+    {
+      "tema": "mesa",
+      "cantidad": 8
+    },
+    {
+      "tema": "iniciativa",
+      "cantidad": 8
+    },
+    {
+      "tema": "jesús",
+      "cantidad": 8
+    },
+    {
+      "tema": "legislativo",
+      "cantidad": 8
+    },
+    {
+      "tema": "solano",
+      "cantidad": 7
+    },
+    {
+      "tema": "local",
+      "cantidad": 7
+    },
+    {
+      "tema": "entrega",
+      "cantidad": 7
+    },
+    {
+      "tema": "directiva",
+      "cantidad": 7
+    },
+    {
+      "tema": "avance",
+      "cantidad": 6
+    },
+    {
+      "tema": "trabajos",
+      "cantidad": 6
+    },
+    {
+      "tema": "#noticia",
+      "cantidad": 6
+    }
+  ],
+  "diasConDatos": 2
+}

@@ -1,0 +1,110 @@
+{
+  "fecha": "2025-08-06",
+  "totalTweets": 6,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "morelos",
+      "cantidad": 7
+    },
+    {
+      "tema": "congreso",
+      "cantidad": 6
+    },
+    {
+      "tema": "noticias",
+      "cantidad": 4
+    },
+    {
+      "tema": "teatro",
+      "cantidad": 4
+    },
+    {
+      "tema": "proyectos",
+      "cantidad": 3
+    },
+    {
+      "tema": "morelos,",
+      "cantidad": 3
+    },
+    {
+      "tema": "antiguo",
+      "cantidad": 3
+    },
+    {
+      "tema": "taller",
+      "cantidad": 2
+    },
+    {
+      "tema": "gestión",
+      "cantidad": 2
+    },
+    {
+      "tema": "perspectiva",
+      "cantidad": 2
+    },
+    {
+      "tema": "género",
+      "cantidad": 2
+    },
+    {
+      "tema": "género,",
+      "cantidad": 2
+    },
+    {
+      "tema": "diputada",
+      "cantidad": 2
+    },
+    {
+      "tema": "tania",
+      "cantidad": 2
+    },
+    {
+      "tema": "valentina",
+      "cantidad": 2
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "diputada",
+      1
+    ]
+  ],
+  "comisiones": [],
+  "tiposIniciativas": [
+    [
+      "iniciativa",
+      1
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "pt",
+      2
+    ],
+    [
+      "morena",
+      1
+    ],
+    [
+      "pri",
+      1
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 18,
+      "cantidad": 5
+    },
+    {
+      "hora": 19,
+      "cantidad": 1
+    }
+  ]
+}

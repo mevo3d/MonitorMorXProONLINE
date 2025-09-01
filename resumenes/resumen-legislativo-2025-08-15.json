@@ -1,0 +1,93 @@
+{
+  "fecha": "2025-08-15",
+  "totalTweets": 2,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "noticias",
+      "cantidad": 2
+    },
+    {
+      "tema": "migrantes",
+      "cantidad": 2
+    },
+    {
+      "tema": "display",
+      "cantidad": 1
+    },
+    {
+      "tema": "@displaynoticias",
+      "cantidad": 1
+    },
+    {
+      "tema": "carolina",
+      "cantidad": 1
+    },
+    {
+      "tema": "ruiz",
+      "cantidad": 1
+    },
+    {
+      "tema": "rodríguez,",
+      "cantidad": 1
+    },
+    {
+      "tema": "presidenta",
+      "cantidad": 1
+    },
+    {
+      "tema": "comisión",
+      "cantidad": 1
+    },
+    {
+      "tema": "atención",
+      "cantidad": 1
+    },
+    {
+      "tema": "personas",
+      "cantidad": 1
+    },
+    {
+      "tema": "#congreso",
+      "cantidad": 1
+    },
+    {
+      "tema": "morelos",
+      "cantidad": 1
+    },
+    {
+      "tema": "subrayó",
+      "cantidad": 1
+    },
+    {
+      "tema": "migrar",
+      "cantidad": 1
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [],
+  "comisiones": [
+    [
+      "mesa directiva",
+      1
+    ]
+  ],
+  "tiposIniciativas": [
+    [
+      "informe",
+      1
+    ]
+  ],
+  "partidosPoliticos": [],
+  "horasPico": [
+    {
+      "hora": 15,
+      "cantidad": 2
+    }
+  ]
+}

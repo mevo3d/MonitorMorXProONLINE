@@ -40,23 +40,163 @@ async function monitorearXPro() {
 
   const tweetsYaEnviados = new Set();
 
-  console.log('🤖 Monitoreo activo. Presiona ENTER para detener...');
-
-  const intervalId = setInterval(async () => {
-    const tweets = await page.$$eval('article', articles =>
-      articles.map(article => article.innerText)
-    );
-
-    for (const tweet of tweets) {
-      if (PALABRAS_CLAVE.some(palabra => tweet.includes(palabra))) {
-        if (!tweetsYaEnviados.has(tweet)) {
-          tweetsYaEnviados.add(tweet);
-          await bot.sendMessage(TELEGRAM_CHAT_ID, `📢 Mención encontrada:\n\n${tweet.substring(0, 400)}...`);
-          console.log(`✅ Enviado: ${tweet.substring(0, 80)}...`);
+  // Función para manejar el scroll automático y actualización del feed
+  async function autoScrollAndUpdate() {
+    try {
+      // Buscar y hacer click en botones de "Mostrar más tweets"
+      const showMoreSelectors = [
+        '[role="button"]:has-text("Show")',
+        '[aria-label*="more"]',
+        'div:has-text("Press to see more Tweets")',
+        'div:has-text("Presionar para que aparezcan")',
+        '[data-testid="cellInnerDiv"] button'
+      ];
+      
+      for (const selector of showMoreSelectors) {
+        try {
+          const buttons = await page.$$(selector);
+          for (const button of buttons) {
+            const isVisible = await button.isVisible();
+            if (isVisible) {
+              const buttonText = await button.textContent();
+              if (buttonText && (
+                buttonText.includes('Show') || 
+                buttonText.includes('more') || 
+                buttonText.includes('Press') ||
+                buttonText.includes('Presionar') ||
+                buttonText.includes('Ver más') ||
+                buttonText.includes('Mostrar')
+              )) {
+                console.log(`🔄 Actualizando feed: "${buttonText}"`);
+                await button.click();
+                await page.waitForTimeout(2000);
+              }
+            }
+          }
+        } catch (e) {
+          // Ignorar errores de elementos que ya no existen
         }
       }
+
+      // Verificar posición del scroll
+      const scrollInfo = await page.evaluate(() => {
+        const scrollHeight = document.body.scrollHeight;
+        const scrollPosition = window.pageYOffset;
+        const windowHeight = window.innerHeight;
+        const scrollPercentage = (scrollPosition / (scrollHeight - windowHeight)) * 100;
+        
+        return {
+          position: scrollPosition,
+          height: scrollHeight,
+          percentage: scrollPercentage
+        };
+      });
+
+      // Si estamos cerca del medio o del final, hacer scroll
+      if (scrollInfo.percentage > 40) {
+        // Scroll suave hacia abajo
+        await page.evaluate(() => {
+          window.scrollBy({ 
+            top: 600, 
+            behavior: 'smooth' 
+          });
+        });
+      }
+      
+      return scrollInfo;
+    } catch (error) {
+      console.error('Error en auto-scroll:', error.message);
+      return null;
     }
-  }, 60 * 1000); // cada minuto
+  }
+
+
+
+  console.log('🤖 Monitoreo activo. Presiona ENTER para detener...');
+
+  
+  let lastScrollPosition = 0;
+  let scrollStuckCount = 0;
+  let tweetsProcessed = 0;
+
+  const intervalId = setInterval(async () => {
+    try {
+      // Ejecutar auto-scroll primero
+      const scrollInfo = await autoScrollAndUpdate();
+      
+      if (scrollInfo) {
+        // Detectar si el scroll está atascado
+        if (scrollInfo.position === lastScrollPosition) {
+          scrollStuckCount++;
+          
+          if (scrollStuckCount >= 3) {
+            console.log('⚠️ Feed detenido, forzando actualización...');
+            
+            // Refresh suave del feed
+            await page.evaluate(() => {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+            await page.waitForTimeout(1500);
+            
+            await page.evaluate(() => {
+              window.scrollTo({ top: window.pageYOffset + 1000, behavior: 'smooth' });
+            });
+            
+            scrollStuckCount = 0;
+          }
+        } else {
+          scrollStuckCount = 0;
+          if (tweetsProcessed % 10 === 0) {
+            console.log(`📊 Posición: ${Math.round(scrollInfo.percentage)}% - Tweets procesados: ${tweetsProcessed}`);
+          }
+        }
+        
+        lastScrollPosition = scrollInfo.position;
+      }
+
+      // Obtener y procesar tweets
+      const tweets = await page.$$eval('article', articles =>
+        articles.map(article => {
+          const textContent = article.innerText;
+          const linkElement = article.querySelector('a[href*="/status/"]');
+          const tweetLink = linkElement ? linkElement.href : null;
+          return { text: textContent, link: tweetLink };
+        })
+      );
+
+      for (const tweet of tweets) {
+        if (PALABRAS_CLAVE.some(palabra => tweet.text.toLowerCase().includes(palabra.toLowerCase()))) {
+          const tweetId = tweet.link || tweet.text;
+          if (!tweetsYaEnviados.has(tweetId)) {
+            tweetsYaEnviados.add(tweetId);
+            tweetsProcessed++;
+            
+            const palabraEncontrada = PALABRAS_CLAVE.find(palabra => 
+              tweet.text.toLowerCase().includes(palabra.toLowerCase())
+            );
+            
+            let mensaje = `📢 Mención: "${palabraEncontrada}"\n\n${tweet.text.substring(0, 400)}...`;
+            if (tweet.link) mensaje += `\n\n🔗 ${tweet.link}`;
+            
+            await bot.sendMessage(TELEGRAM_CHAT_ID, mensaje);
+            console.log(`✅ Tweet #${tweetsProcessed}: ${tweet.text.substring(0, 60)}...`);
+          }
+        }
+      }
+      
+      // Limpiar memoria periódicamente
+      if (tweetsYaEnviados.size > 1000) {
+        const arrayTweets = Array.from(tweetsYaEnviados);
+        tweetsYaEnviados.clear();
+        arrayTweets.slice(-500).forEach(id => tweetsYaEnviados.add(id));
+        console.log('🧹 Memoria optimizada');
+      }
+      
+    } catch (error) {
+      console.error('Error en monitoreo:', error.message);
+    }
+  }, 30 * 1000); // Ejecutar cada 30 segundos en lugar de cada minuto
+ // cada minuto
 
   // Crear interfaz para detener
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });

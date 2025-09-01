@@ -1,0 +1,139 @@
+{
+  "fecha": "2025-08-09",
+  "totalTweets": 12,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "morelos",
+      "cantidad": 18
+    },
+    {
+      "tema": "congreso",
+      "cantidad": 12
+    },
+    {
+      "tema": "gobierno",
+      "cantidad": 8
+    },
+    {
+      "tema": "desarrollo",
+      "cantidad": 7
+    },
+    {
+      "tema": "canacintra",
+      "cantidad": 6
+    },
+    {
+      "tema": "industria",
+      "cantidad": 6
+    },
+    {
+      "tema": "segunda",
+      "cantidad": 5
+    },
+    {
+      "tema": "estado",
+      "cantidad": 5
+    },
+    {
+      "tema": "general",
+      "cantidad": 5
+    },
+    {
+      "tema": "local",
+      "cantidad": 4
+    },
+    {
+      "tema": "morelos,",
+      "cantidad": 4
+    },
+    {
+      "tema": "presupuesto",
+      "cantidad": 4
+    },
+    {
+      "tema": "propuestas",
+      "cantidad": 4
+    },
+    {
+      "tema": "estatal",
+      "cantidad": 4
+    },
+    {
+      "tema": "aniversario",
+      "cantidad": 4
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "andy gordillo",
+      3
+    ],
+    [
+      "diputada",
+      3
+    ],
+    [
+      "jazmin solano",
+      2
+    ],
+    [
+      "diputado",
+      1
+    ],
+    [
+      "legislador",
+      1
+    ]
+  ],
+  "comisiones": [
+    [
+      "mesa directiva",
+      1
+    ]
+  ],
+  "tiposIniciativas": [
+    [
+      "presupuesto",
+      3
+    ],
+    [
+      "iniciativa",
+      1
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "pan",
+      3
+    ],
+    [
+      "pri",
+      2
+    ],
+    [
+      "pt",
+      1
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 16,
+      "cantidad": 9
+    },
+    {
+      "hora": 17,
+      "cantidad": 2
+    },
+    {
+      "hora": 19,
+      "cantidad": 1
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "fecha": "2025-08-20",
+  "totalTweets": 6,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "morelos",
+      "cantidad": 5
+    },
+    {
+      "tema": "puente",
+      "cantidad": 4
+    },
+    {
+      "tema": "electoral",
+      "cantidad": 3
+    },
+    {
+      "tema": "política",
+      "cantidad": 3
+    },
+    {
+      "tema": "capacitación",
+      "cantidad": 3
+    },
+    {
+      "tema": "ixtla,",
+      "cantidad": 3
+    },
+    {
+      "tema": "transformación",
+      "cantidad": 3
+    },
+    {
+      "tema": "brenda",
+      "cantidad": 3
+    },
+    {
+      "tema": "espinoza",
+      "cantidad": 3
+    },
+    {
+      "tema": "lopez",
+      "cantidad": 3
+    },
+    {
+      "tema": "congreso",
+      "cantidad": 2
+    },
+    {
+      "tema": "donde",
+      "cantidad": 2
+    },
+    {
+      "tema": "participación",
+      "cantidad": 2
+    },
+    {
+      "tema": "mujeres",
+      "cantidad": 2
+    },
+    {
+      "tema": "jornada",
+      "cantidad": 2
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "andy gordillo",
+      1
+    ]
+  ],
+  "comisiones": [],
+  "tiposIniciativas": [
+    [
+      "reforma",
+      1
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "pan",
+      1
+    ],
+    [
+      "pri",
+      1
+    ],
+    [
+      "pt",
+      1
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 13,
+      "cantidad": 2
+    },
+    {
+      "hora": 12,
+      "cantidad": 1
+    },
+    {
+      "hora": 14,
+      "cantidad": 1
+    }
+  ]
+}

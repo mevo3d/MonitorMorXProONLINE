@@ -1,0 +1,88 @@
+{
+  "fecha": "2025-08-10",
+  "totalTweets": 1,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "acercamiento",
+      "cantidad": 2
+    },
+    {
+      "tema": "poder",
+      "cantidad": 2
+    },
+    {
+      "tema": "morelos,",
+      "cantidad": 2
+    },
+    {
+      "tema": "cuautlahoy",
+      "cantidad": 1
+    },
+    {
+      "tema": "@cuautlahoy",
+      "cantidad": 1
+    },
+    {
+      "tema": "legislativo",
+      "cantidad": 1
+    },
+    {
+      "tema": "ejecutivo.",
+      "cantidad": 1
+    },
+    {
+      "tema": "entrevista",
+      "cantidad": 1
+    },
+    {
+      "tema": "diputado",
+      "cantidad": 1
+    },
+    {
+      "tema": "local",
+      "cantidad": 1
+    },
+    {
+      "tema": "congreso",
+      "cantidad": 1
+    },
+    {
+      "tema": "isaac",
+      "cantidad": 1
+    },
+    {
+      "tema": "pimentel",
+      "cantidad": 1
+    },
+    {
+      "tema": "mejía,",
+      "cantidad": 1
+    },
+    {
+      "tema": "informó",
+      "cantidad": 1
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "diputado",
+      1
+    ]
+  ],
+  "comisiones": [],
+  "tiposIniciativas": [],
+  "partidosPoliticos": [],
+  "horasPico": [
+    {
+      "hora": 16,
+      "cantidad": 1
+    }
+  ]
+}

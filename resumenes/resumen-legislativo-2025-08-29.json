@@ -1,0 +1,139 @@
+{
+  "fecha": "2025-08-29",
+  "totalTweets": 17,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "fiscal",
+      "cantidad": 17
+    },
+    {
+      "tema": "congreso",
+      "cantidad": 14
+    },
+    {
+      "tema": "presidente",
+      "cantidad": 12
+    },
+    {
+      "tema": "informe",
+      "cantidad": 11
+    },
+    {
+      "tema": "isaac",
+      "cantidad": 10
+    },
+    {
+      "tema": "pimentel",
+      "cantidad": 9
+    },
+    {
+      "tema": "mesa",
+      "cantidad": 8
+    },
+    {
+      "tema": "general",
+      "cantidad": 8
+    },
+    {
+      "tema": "directiva",
+      "cantidad": 7
+    },
+    {
+      "tema": "morelos",
+      "cantidad": 7
+    },
+    {
+      "tema": "morelos,",
+      "cantidad": 6
+    },
+    {
+      "tema": "actividades",
+      "cantidad": 6
+    },
+    {
+      "tema": "edgar",
+      "cantidad": 6
+    },
+    {
+      "tema": "maldonado",
+      "cantidad": 6
+    },
+    {
+      "tema": "semestral",
+      "cantidad": 6
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "diputado",
+      5
+    ],
+    [
+      "diputada",
+      2
+    ],
+    [
+      "andrea gordillo",
+      1
+    ],
+    [
+      "andy gordillo",
+      1
+    ]
+  ],
+  "comisiones": [
+    [
+      "mesa directiva",
+      8
+    ]
+  ],
+  "tiposIniciativas": [
+    [
+      "informe",
+      9
+    ],
+    [
+      "comparecencia",
+      3
+    ],
+    [
+      "presupuesto",
+      1
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "pt",
+      3
+    ],
+    [
+      "pri",
+      3
+    ],
+    [
+      "pan",
+      2
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 12,
+      "cantidad": 15
+    },
+    {
+      "hora": 14,
+      "cantidad": 1
+    },
+    {
+      "hora": 16,
+      "cantidad": 1
+    }
+  ]
+}

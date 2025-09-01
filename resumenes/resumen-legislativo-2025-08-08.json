@@ -1,0 +1,119 @@
+{
+  "fecha": "2025-08-08",
+  "totalTweets": 8,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "jesús",
+      "cantidad": 7
+    },
+    {
+      "tema": "seguridad",
+      "cantidad": 6
+    },
+    {
+      "tema": "morelos,",
+      "cantidad": 6
+    },
+    {
+      "tema": "presidente",
+      "cantidad": 5
+    },
+    {
+      "tema": "comisión",
+      "cantidad": 5
+    },
+    {
+      "tema": "congreso",
+      "cantidad": 5
+    },
+    {
+      "tema": "alfonso",
+      "cantidad": 5
+    },
+    {
+      "tema": "sotelo",
+      "cantidad": 5
+    },
+    {
+      "tema": "legislativo",
+      "cantidad": 5
+    },
+    {
+      "tema": "informó",
+      "cantidad": 5
+    },
+    {
+      "tema": "martínez",
+      "cantidad": 4
+    },
+    {
+      "tema": "que,",
+      "cantidad": 4
+    },
+    {
+      "tema": "próximo",
+      "cantidad": 4
+    },
+    {
+      "tema": "abordará",
+      "cantidad": 4
+    },
+    {
+      "tema": "iniciativa",
+      "cantidad": 4
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "diputado",
+      1
+    ],
+    [
+      "diputada",
+      1
+    ]
+  ],
+  "comisiones": [
+    [
+      "mesa directiva",
+      1
+    ]
+  ],
+  "tiposIniciativas": [
+    [
+      "iniciativa",
+      4
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "pri",
+      2
+    ],
+    [
+      "morena",
+      1
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 12,
+      "cantidad": 4
+    },
+    {
+      "hora": 14,
+      "cantidad": 2
+    },
+    {
+      "hora": 13,
+      "cantidad": 1
+    }
+  ]
+}
