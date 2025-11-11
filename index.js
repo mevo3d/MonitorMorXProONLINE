@@ -14,7 +14,7 @@ import { exec } from 'child_process';
 
 import AnalizadorTendencias from './analizador-tendencias.js';
 
-const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 // Rutas específicas para diferentes tipos de archivos

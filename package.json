@@ -5,7 +5,9 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "start:robusto": "node monitorXProRobusto.js",
+    "monitor": "node index.js"
   },
   "dependencies": {
     "archiver": "^6.0.0",
@@ -16,6 +18,7 @@
     "node-telegram-bot-api": "^0.61.0",
     "playwright": "^1.53.2",
     "qrcode-terminal": "^0.12.0",
-    "whatsapp-web.js": "^1.31.0"
+    "whatsapp-web.js": "^1.31.0",
+    "winston": "^3.17.0"
   }
 }
