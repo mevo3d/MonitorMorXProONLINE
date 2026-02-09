@@ -1,0 +1,152 @@
+{
+  "fechaInicio": "2025-11-08",
+  "fechaFin": "2025-11-15",
+  "totalTweets": 32,
+  "totalDuplicados": 0,
+  "promedioTweetsDiarios": 5,
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "diputado",
+      5
+    ],
+    [
+      "diputada",
+      2
+    ],
+    [
+      "jazmin solano",
+      2
+    ],
+    [
+      "legislador",
+      1
+    ],
+    [
+      "andy gordillo",
+      1
+    ]
+  ],
+  "comisiones": [
+    [
+      "mesa directiva",
+      5
+    ]
+  ],
+  "tiposIniciativas": [
+    [
+      "presupuesto",
+      6
+    ],
+    [
+      "reforma",
+      1
+    ],
+    [
+      "iniciativa",
+      1
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "pri",
+      4
+    ],
+    [
+      "pan",
+      2
+    ],
+    [
+      "pt",
+      1
+    ]
+  ],
+  "topTemas": [
+    {
+      "tema": "morelos",
+      "cantidad": 31
+    },
+    {
+      "tema": "estado",
+      "cantidad": 21
+    },
+    {
+      "tema": "congreso",
+      "cantidad": 18
+    },
+    {
+      "tema": "11:00",
+      "cantidad": 18
+    },
+    {
+      "tema": "económico",
+      "cantidad": 16
+    },
+    {
+      "tema": "paquete",
+      "cantidad": 14
+    },
+    {
+      "tema": "gobierno",
+      "cantidad": 14
+    },
+    {
+      "tema": "palacio",
+      "cantidad": 13
+    },
+    {
+      "tema": "presidente",
+      "cantidad": 11
+    },
+    {
+      "tema": "plaza",
+      "cantidad": 10
+    },
+    {
+      "tema": "isaac",
+      "cantidad": 9
+    },
+    {
+      "tema": "poder",
+      "cantidad": 9
+    },
+    {
+      "tema": "fernando",
+      "cantidad": 9
+    },
+    {
+      "tema": "nuevo",
+      "cantidad": 9
+    },
+    {
+      "tema": "2026",
+      "cantidad": 8
+    },
+    {
+      "tema": "#morelos",
+      "cantidad": 8
+    },
+    {
+      "tema": "presupuesto",
+      "cantidad": 8
+    },
+    {
+      "tema": "general",
+      "cantidad": 8
+    },
+    {
+      "tema": "justicia",
+      "cantidad": 8
+    },
+    {
+      "tema": "propuesta",
+      "cantidad": 7
+    }
+  ],
+  "diasConDatos": 1
+}

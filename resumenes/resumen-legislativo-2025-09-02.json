@@ -1,0 +1,131 @@
+{
+  "fecha": "2025-09-02",
+  "totalTweets": 21,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "congreso",
+      "cantidad": 18
+    },
+    {
+      "tema": "morelos",
+      "cantidad": 15
+    },
+    {
+      "tema": "presidente",
+      "cantidad": 13
+    },
+    {
+      "tema": "mesa",
+      "cantidad": 8
+    },
+    {
+      "tema": "isaac",
+      "cantidad": 8
+    },
+    {
+      "tema": "gobernadora",
+      "cantidad": 7
+    },
+    {
+      "tema": "pimentel",
+      "cantidad": 6
+    },
+    {
+      "tema": "estado",
+      "cantidad": 6
+    },
+    {
+      "tema": "margarita",
+      "cantidad": 5
+    },
+    {
+      "tema": "gonzález",
+      "cantidad": 5
+    },
+    {
+      "tema": "noticias",
+      "cantidad": 5
+    },
+    {
+      "tema": "morelos,",
+      "cantidad": 5
+    },
+    {
+      "tema": "primer",
+      "cantidad": 5
+    },
+    {
+      "tema": "aborto",
+      "cantidad": 5
+    },
+    {
+      "tema": "inicio",
+      "cantidad": 5
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "diputado",
+      5
+    ],
+    [
+      "jazmin solano",
+      1
+    ]
+  ],
+  "comisiones": [
+    [
+      "mesa directiva",
+      7
+    ]
+  ],
+  "tiposIniciativas": [
+    [
+      "iniciativa",
+      4
+    ],
+    [
+      "informe",
+      2
+    ],
+    [
+      "reforma",
+      1
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "pri",
+      5
+    ],
+    [
+      "pan",
+      1
+    ],
+    [
+      "morena",
+      1
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 15,
+      "cantidad": 13
+    },
+    {
+      "hora": 18,
+      "cantidad": 4
+    },
+    {
+      "hora": 16,
+      "cantidad": 2
+    }
+  ]
+}

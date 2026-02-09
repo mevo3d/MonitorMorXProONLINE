@@ -1,0 +1,151 @@
+{
+  "fecha": "2025-09-13",
+  "totalTweets": 16,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "morelos",
+      "cantidad": 23
+    },
+    {
+      "tema": "congreso",
+      "cantidad": 17
+    },
+    {
+      "tema": "estado",
+      "cantidad": 16
+    },
+    {
+      "tema": "noticias",
+      "cantidad": 7
+    },
+    {
+      "tema": "mendicidad",
+      "cantidad": 7
+    },
+    {
+      "tema": "reforma",
+      "cantidad": 5
+    },
+    {
+      "tema": "diputada",
+      "cantidad": 4
+    },
+    {
+      "tema": "@moreloscongreso",
+      "cantidad": 4
+    },
+    {
+      "tema": "infantil",
+      "cantidad": 4
+    },
+    {
+      "tema": "código",
+      "cantidad": 4
+    },
+    {
+      "tema": "penal",
+      "cantidad": 4
+    },
+    {
+      "tema": "niñas",
+      "cantidad": 4
+    },
+    {
+      "tema": "niños",
+      "cantidad": 4
+    },
+    {
+      "tema": "quienes",
+      "cantidad": 4
+    },
+    {
+      "tema": "septiembre",
+      "cantidad": 3
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "diputada",
+      4
+    ],
+    [
+      "diputado",
+      3
+    ]
+  ],
+  "comisiones": [
+    [
+      "mesa directiva",
+      2
+    ]
+  ],
+  "tiposIniciativas": [
+    [
+      "reforma",
+      4
+    ],
+    [
+      "iniciativa",
+      2
+    ],
+    [
+      "comparecencia",
+      1
+    ],
+    [
+      "dictamen",
+      1
+    ],
+    [
+      "decreto",
+      1
+    ],
+    [
+      "presupuesto",
+      1
+    ],
+    [
+      "informe",
+      1
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "pt",
+      4
+    ],
+    [
+      "morena",
+      3
+    ],
+    [
+      "pri",
+      3
+    ],
+    [
+      "pan",
+      1
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 12,
+      "cantidad": 7
+    },
+    {
+      "hora": 13,
+      "cantidad": 3
+    },
+    {
+      "hora": 16,
+      "cantidad": 3
+    }
+  ]
+}

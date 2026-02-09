@@ -12,7 +12,12 @@
       "Bash(cmd /c del:*)",
       "Bash(npm install)",
       "Bash(copy:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(npm install:*)",
+      "Bash(npm start:*)",
+      "Bash(npm ls:*)",
+      "Bash(npx playwright install:*)"
     ],
     "deny": [],
     "additionalDirectories": [

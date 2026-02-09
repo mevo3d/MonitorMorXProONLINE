@@ -1,0 +1,135 @@
+{
+  "fecha": "2025-09-14",
+  "totalTweets": 7,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "congreso",
+      "cantidad": 9
+    },
+    {
+      "tema": "ifigenia",
+      "cantidad": 7
+    },
+    {
+      "tema": "morelos",
+      "cantidad": 6
+    },
+    {
+      "tema": "salgado",
+      "cantidad": 6
+    },
+    {
+      "tema": "guerrero",
+      "cantidad": 6
+    },
+    {
+      "tema": "evelyn",
+      "cantidad": 5
+    },
+    {
+      "tema": "sentimientos",
+      "cantidad": 5
+    },
+    {
+      "tema": "presea",
+      "cantidad": 5
+    },
+    {
+      "tema": "estado",
+      "cantidad": 4
+    },
+    {
+      "tema": "aniversario",
+      "cantidad": 4
+    },
+    {
+      "tema": "vida",
+      "cantidad": 4
+    },
+    {
+      "tema": "pineda",
+      "cantidad": 4
+    },
+    {
+      "tema": "primer",
+      "cantidad": 4
+    },
+    {
+      "tema": "maría",
+      "cantidad": 4
+    },
+    {
+      "tema": "justicia,",
+      "cantidad": 4
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "diputada",
+      2
+    ],
+    [
+      "jazmin solano",
+      1
+    ],
+    [
+      "diputado",
+      1
+    ],
+    [
+      "legislador",
+      1
+    ],
+    [
+      "legisladora",
+      1
+    ]
+  ],
+  "comisiones": [
+    [
+      "mesa directiva",
+      1
+    ]
+  ],
+  "tiposIniciativas": [
+    [
+      "reforma",
+      1
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "pan",
+      3
+    ],
+    [
+      "pri",
+      2
+    ],
+    [
+      "pt",
+      1
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 21,
+      "cantidad": 3
+    },
+    {
+      "hora": 19,
+      "cantidad": 2
+    },
+    {
+      "hora": 13,
+      "cantidad": 1
+    }
+  ]
+}

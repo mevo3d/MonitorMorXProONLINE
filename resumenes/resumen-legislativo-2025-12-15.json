@@ -1,0 +1,135 @@
+{
+  "fecha": "2025-12-15",
+  "totalTweets": 19,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "morelos",
+      "cantidad": 16
+    },
+    {
+      "tema": "congreso",
+      "cantidad": 11
+    },
+    {
+      "tema": "#morelos",
+      "cantidad": 7
+    },
+    {
+      "tema": "gobierno",
+      "cantidad": 6
+    },
+    {
+      "tema": "estado",
+      "cantidad": 6
+    },
+    {
+      "tema": "secretaría",
+      "cantidad": 5
+    },
+    {
+      "tema": "distribución",
+      "cantidad": 4
+    },
+    {
+      "tema": "cobijas",
+      "cantidad": 4
+    },
+    {
+      "tema": "ropa",
+      "cantidad": 4
+    },
+    {
+      "tema": "invernal",
+      "cantidad": 4
+    },
+    {
+      "tema": "campaña",
+      "cantidad": 4
+    },
+    {
+      "tema": "@margarita_gs",
+      "cantidad": 4
+    },
+    {
+      "tema": "extingue",
+      "cantidad": 4
+    },
+    {
+      "tema": "estatal",
+      "cantidad": 4
+    },
+    {
+      "tema": "#latierraquenosune",
+      "cantidad": 4
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "legislador",
+      1
+    ],
+    [
+      "legisladora",
+      1
+    ],
+    [
+      "diputado",
+      1
+    ]
+  ],
+  "comisiones": [
+    [
+      "mesa directiva",
+      1
+    ]
+  ],
+  "tiposIniciativas": [
+    [
+      "reforma",
+      3
+    ],
+    [
+      "comparecencia",
+      1
+    ],
+    [
+      "presupuesto",
+      1
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "pri",
+      3
+    ],
+    [
+      "pan",
+      2
+    ],
+    [
+      "pt",
+      1
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 19,
+      "cantidad": 15
+    },
+    {
+      "hora": 20,
+      "cantidad": 3
+    },
+    {
+      "hora": 21,
+      "cantidad": 1
+    }
+  ]
+}

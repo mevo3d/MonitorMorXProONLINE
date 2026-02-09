@@ -1,23 +1,35 @@
 {
-  "name": "monitor-legislativo-mor",
-  "version": "1.0.0",
-  "description": "Monitor del Poder Legislativo de Morelos - Congreso y Diputados",
+  "name": "monitor-x-morelos",
+  "version": "2.0.0",
+  "description": "Monitor Multiplataforma de Poderes de Morelos - Ejecutivo, Legislativo y Judicial en X, Facebook, YouTube y RSS",
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "start:robusto": "node monitorXProRobusto.js",
-    "monitor": "node index.js"
+    "start": "node indexMonitor.js",
+    "monitor": "node indexMonitor.js"
   },
   "dependencies": {
     "archiver": "^6.0.0",
+    "axios": "^1.13.2",
+    "chalk": "^5.6.2",
+    "cheerio": "^1.1.2",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
     "dayjs": "^1.11.10",
     "dotenv": "^17.0.0",
     "exceljs": "^4.4.0",
+    "express": "^5.2.1",
+    "fastify": "^5.6.2",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.1",
+    "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
     "node-telegram-bot-api": "^0.61.0",
+    "openai": "^6.10.0",
+    "pg": "^8.16.3",
     "playwright": "^1.53.2",
     "qrcode-terminal": "^0.12.0",
+    "rss-parser": "^3.13.0",
     "whatsapp-web.js": "^1.31.0",
     "winston": "^3.17.0"
   }

@@ -1,0 +1,92 @@
+{
+  "fecha": "2025-09-11",
+  "totalTweets": 2,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "congreso",
+      "cantidad": 3
+    },
+    {
+      "tema": "nacional",
+      "cantidad": 2
+    },
+    {
+      "tema": "seguir",
+      "cantidad": 2
+    },
+    {
+      "tema": "transmisión",
+      "cantidad": 2
+    },
+    {
+      "tema": "@tepjf_informa",
+      "cantidad": 2
+    },
+    {
+      "tema": "solicitud",
+      "cantidad": 2
+    },
+    {
+      "tema": "juicio",
+      "cantidad": 2
+    },
+    {
+      "tema": "político",
+      "cantidad": 2
+    },
+    {
+      "tema": "contra",
+      "cantidad": 2
+    },
+    {
+      "tema": "titular",
+      "cantidad": 2
+    },
+    {
+      "tema": "contraloría",
+      "cantidad": 2
+    },
+    {
+      "tema": "felipe",
+      "cantidad": 1
+    },
+    {
+      "tema": "fuentes",
+      "cantidad": 1
+    },
+    {
+      "tema": "barrera",
+      "cantidad": 1
+    },
+    {
+      "tema": "@ffuentesbarrera",
+      "cantidad": 1
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [],
+  "comisiones": [],
+  "tiposIniciativas": [],
+  "partidosPoliticos": [
+    [
+      "morena",
+      1
+    ],
+    [
+      "pt",
+      1
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 12,
+      "cantidad": 2
+    }
+  ]
+}

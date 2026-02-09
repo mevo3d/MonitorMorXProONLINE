@@ -1,0 +1,151 @@
+{
+  "fecha": "2025-09-12",
+  "totalTweets": 17,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "congreso",
+      "cantidad": 18
+    },
+    {
+      "tema": "morelos",
+      "cantidad": 16
+    },
+    {
+      "tema": "isaac",
+      "cantidad": 10
+    },
+    {
+      "tema": "pimentel",
+      "cantidad": 10
+    },
+    {
+      "tema": "presidente",
+      "cantidad": 9
+    },
+    {
+      "tema": "morelos,",
+      "cantidad": 8
+    },
+    {
+      "tema": "mejía,",
+      "cantidad": 8
+    },
+    {
+      "tema": "municipios",
+      "cantidad": 7
+    },
+    {
+      "tema": "estado",
+      "cantidad": 7
+    },
+    {
+      "tema": "diputado",
+      "cantidad": 6
+    },
+    {
+      "tema": "diputada",
+      "cantidad": 6
+    },
+    {
+      "tema": "matrimonio",
+      "cantidad": 6
+    },
+    {
+      "tema": "bolsa",
+      "cantidad": 5
+    },
+    {
+      "tema": "iniciativa",
+      "cantidad": 5
+    },
+    {
+      "tema": "laudos",
+      "cantidad": 4
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "diputado",
+      7
+    ],
+    [
+      "diputada",
+      4
+    ],
+    [
+      "legislador",
+      2
+    ],
+    [
+      "legisladora",
+      1
+    ]
+  ],
+  "comisiones": [
+    [
+      "mesa directiva",
+      2
+    ]
+  ],
+  "tiposIniciativas": [
+    [
+      "iniciativa",
+      4
+    ],
+    [
+      "informe",
+      2
+    ],
+    [
+      "reforma",
+      2
+    ],
+    [
+      "dictamen",
+      2
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "morena",
+      2
+    ],
+    [
+      "pt",
+      1
+    ],
+    [
+      "movimiento ciudadano",
+      1
+    ],
+    [
+      "pan",
+      1
+    ],
+    [
+      "pri",
+      1
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 18,
+      "cantidad": 12
+    },
+    {
+      "hora": 19,
+      "cantidad": 3
+    },
+    {
+      "hora": 20,
+      "cantidad": 2
+    }
+  ]
+}

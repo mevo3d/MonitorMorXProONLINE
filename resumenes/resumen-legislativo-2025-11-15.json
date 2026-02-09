@@ -1,0 +1,138 @@
+{
+  "fecha": "2025-11-15",
+  "totalTweets": 24,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "gobierno",
+      "cantidad": 13
+    },
+    {
+      "tema": "morelos",
+      "cantidad": 11
+    },
+    {
+      "tema": "#morelos",
+      "cantidad": 10
+    },
+    {
+      "tema": "morelos,",
+      "cantidad": 7
+    },
+    {
+      "tema": "estado",
+      "cantidad": 7
+    },
+    {
+      "tema": "poder",
+      "cantidad": 6
+    },
+    {
+      "tema": "comuneros",
+      "cantidad": 6
+    },
+    {
+      "tema": "tepoztlán",
+      "cantidad": 6
+    },
+    {
+      "tema": "@tsjmorelosof",
+      "cantidad": 5
+    },
+    {
+      "tema": "margarita",
+      "cantidad": 4
+    },
+    {
+      "tema": "gonzález",
+      "cantidad": 4
+    },
+    {
+      "tema": "https://",
+      "cantidad": 4
+    },
+    {
+      "tema": "servicio",
+      "cantidad": 4
+    },
+    {
+      "tema": "noviembre",
+      "cantidad": 4
+    },
+    {
+      "tema": "oficial",
+      "cantidad": 4
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "rafa reyes",
+      1
+    ],
+    [
+      "diputado",
+      1
+    ],
+    [
+      "rafael reyes",
+      1
+    ],
+    [
+      "diputada",
+      1
+    ]
+  ],
+  "comisiones": [],
+  "tiposIniciativas": [
+    [
+      "presupuesto",
+      2
+    ],
+    [
+      "decreto",
+      1
+    ],
+    [
+      "reforma",
+      1
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "pri",
+      3
+    ],
+    [
+      "pan",
+      2
+    ],
+    [
+      "morena",
+      1
+    ],
+    [
+      "pt",
+      1
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 15,
+      "cantidad": 19
+    },
+    {
+      "hora": 16,
+      "cantidad": 4
+    },
+    {
+      "hora": 17,
+      "cantidad": 1
+    }
+  ]
+}

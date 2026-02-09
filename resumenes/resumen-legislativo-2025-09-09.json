@@ -1,0 +1,135 @@
+{
+  "fecha": "2025-09-09",
+  "totalTweets": 14,
+  "totalDuplicados": 0,
+  "topTemas": [
+    {
+      "tema": "morelos",
+      "cantidad": 14
+    },
+    {
+      "tema": "congreso",
+      "cantidad": 11
+    },
+    {
+      "tema": "iniciativas",
+      "cantidad": 5
+    },
+    {
+      "tema": "disparos",
+      "cantidad": 5
+    },
+    {
+      "tema": "aire",
+      "cantidad": 5
+    },
+    {
+      "tema": "noticias",
+      "cantidad": 4
+    },
+    {
+      "tema": "brenda",
+      "cantidad": 4
+    },
+    {
+      "tema": "espinoza",
+      "cantidad": 4
+    },
+    {
+      "tema": "estado",
+      "cantidad": 4
+    },
+    {
+      "tema": "prohíbe",
+      "cantidad": 4
+    },
+    {
+      "tema": "morelos,",
+      "cantidad": 4
+    },
+    {
+      "tema": "derechos",
+      "cantidad": 3
+    },
+    {
+      "tema": "diputada",
+      "cantidad": 3
+    },
+    {
+      "tema": "lópez,",
+      "cantidad": 3
+    },
+    {
+      "tema": "comisión",
+      "cantidad": 3
+    }
+  ],
+  "categorias": {
+    "legislativo": 0,
+    "politico": 0,
+    "presupuesto": 0,
+    "urgente": 0
+  },
+  "diputados": [
+    [
+      "diputado",
+      4
+    ],
+    [
+      "diputada",
+      3
+    ],
+    [
+      "coordinador parlamentario",
+      1
+    ],
+    [
+      "jazmin solano",
+      1
+    ],
+    [
+      "legislador",
+      1
+    ]
+  ],
+  "comisiones": [
+    [
+      "mesa directiva",
+      1
+    ]
+  ],
+  "tiposIniciativas": [
+    [
+      "iniciativa",
+      7
+    ]
+  ],
+  "partidosPoliticos": [
+    [
+      "pan",
+      3
+    ],
+    [
+      "pri",
+      2
+    ],
+    [
+      "pt",
+      2
+    ]
+  ],
+  "horasPico": [
+    {
+      "hora": 14,
+      "cantidad": 9
+    },
+    {
+      "hora": 15,
+      "cantidad": 2
+    },
+    {
+      "hora": 18,
+      "cantidad": 2
+    }
+  ]
+}
