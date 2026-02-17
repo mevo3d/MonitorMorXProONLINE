@@ -12,6 +12,7 @@ import winston from 'winston';
 import { exec } from 'child_process';
 import https from 'https';
 import EstadisticasMedios from './EstadisticasMedios.js';
+import { createWorker } from 'tesseract.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -40,6 +41,8 @@ let heartbeatInterval = null;
 let scrollInterval = null;
 let checkInterval = null;
 let sessionSaveInterval = null;
+let nextScrollTime = 0; // Para el temporizador visual
+let ocrWorker = null; // Worker de Tesseract reutilizable
 let crashCount = 0;
 const MAX_CRASH_RETRIES = 100;
 
@@ -137,6 +140,17 @@ async function limpiarRecursos() {
 
 // Función principal con reinicio automático
 async function iniciarMonitorConRecuperacion() {
+  // Inicializar Worker de OCR una sola vez
+  if (!ocrWorker) {
+    console.log('👁️ Inicializando motor OCR (Tesseract)...');
+    try {
+      ocrWorker = await createWorker('spa');
+      console.log('✅ Motor OCR listo');
+    } catch (e) {
+      console.error('❌ Error iniciando OCR:', e.message);
+    }
+  }
+
   while (crashCount < MAX_CRASH_RETRIES) {
     try {
       console.log(`\n🚀 Iniciando monitor (intento ${crashCount + 1}/${MAX_CRASH_RETRIES})`);
@@ -147,6 +161,11 @@ async function iniciarMonitorConRecuperacion() {
       logger.error(`Crash #${crashCount}`, error);
 
       await limpiarRecursos();
+
+      // Liberar OCR si falla todo el proceso
+      if (crashCount >= MAX_CRASH_RETRIES && ocrWorker) {
+        await ocrWorker.terminate();
+      }
 
       // Notificar por Telegram
       if (bot) {
@@ -339,9 +358,21 @@ async function iniciarMonitor() {
         recoverySystem.recordError(error);
         if (recoverySystem.shouldRestart()) throw new Error('Demasiados errores de scroll');
       }
-    }, 180000);
+    }, 60000); // Scroll cada 60 segundos (1 minuto)
+    nextScrollTime = Date.now() + 60000;
+
+    // Actualización de overlay con Timer
+    setInterval(async () => {
+      const remaining = Math.max(0, Math.ceil((nextScrollTime - Date.now()) / 1000));
+      await actualizarOverlay(page, tweetsEncontradosCount, 'Monitoreo activo', allKeywords.length, startTime, remaining);
+    }, 1000);
+
+    // Flag de control de concurrencia
+    let isProcessing = false;
 
     checkInterval = setInterval(async () => {
+      if (isProcessing) return; // Evitar solapamiento
+      isProcessing = true;
       try {
         const resultado = await verificarNuevosTweets(page, allKeywords, tweetsEnviados, tweetsEncontradosCount, bot);
         if (resultado > 0) tweetsEncontradosCount = resultado;
@@ -349,13 +380,15 @@ async function iniciarMonitor() {
         console.error('Error verificando tweets:', error.message);
         recoverySystem.recordError(error);
         if (recoverySystem.shouldRestart()) throw new Error('Demasiados errores verificando tweets');
+      } finally {
+        isProcessing = false;
       }
     }, 20000);
 
-    // Actualización de overlay
-    setInterval(async () => {
-      await actualizarOverlay(page, tweetsEncontradosCount, 'Monitoreo activo', allKeywords.length, startTime);
-    }, 3000);
+    // Actualización de overlay (Manejado arriba con el timer)
+    // setInterval(async () => {
+    //   await actualizarOverlay(page, tweetsEncontradosCount, 'Monitoreo activo', allKeywords.length, startTime);
+    // }, 3000);
 
     sessionSaveInterval = setInterval(async () => {
       await guardarSesionXPro();
@@ -467,18 +500,23 @@ async function agregarOverlay(page) {
   });
 }
 
-async function actualizarOverlay(page, encontrados, status, kwCount, startTime) {
+async function actualizarOverlay(page, encontrados, status, kwCount, startTime, nextScroll) {
   try {
     const uptime = Math.floor((Date.now() - startTime) / 1000);
     const min = Math.floor(uptime / 60);
     const sec = uptime % 60;
-    await page.evaluate(({ e, m, s, st, k }) => {
+    await page.evaluate(({ e, m, s, st, k, ns }) => {
       const d = document.getElementById('overlay-monitor');
       if (d) {
         d.innerText = `🤖 Monitor X Pro\n⏰ Uptime: ${m}:${s.toString().padStart(2, '0')}\n` +
-          `🔍 Keywords: ${k}\n📨 Enviados: ${e}\n✅ Status: ${st}`;
+          `🔍 Keywords: ${k}\n📨 Enviados: ${e}\n✅ Status: ${st}\n` +
+          `📜 Próximo Scroll: ${ns}s`;
+
+        // Alerta visual si falta poco para scroll
+        if (ns <= 5) d.style.color = '#ffeba7';
+        else d.style.color = 'white';
       }
-    }, { e: encontrados, m: min, s: sec, st: status, k: kwCount });
+    }, { e: encontrados, m: min, s: sec, st: status, k: kwCount, ns: nextScroll || 0 });
   } catch { }
 }
 
@@ -513,11 +551,31 @@ async function cargarPalabrasClave() {
 }
 
 async function realizarAutoScroll(page) {
+  console.log('🔄 Ejecutando auto-scroll en TODAS las columnas...');
+
+  // 1. Scroll vertical en cada columna visible
   const columnas = await page.$$('[data-testid="column"]');
   for (const col of columnas) {
-    await col.evaluate(el => el.scrollTop += 500).catch();
+    try {
+      // Scroll hacia abajo
+      await col.evaluate(el => el.scrollTop += 500);
+
+      // Si está muy abajo, volver un poco arriba para "despertar"
+      // await col.evaluate(el => { if(el.scrollTop > 5000) el.scrollTop = 0; }); // Opcional si se quiere resetear
+    } catch (e) { }
     await page.waitForTimeout(200);
   }
+
+  // 2. Scroll Horizontal del contenedor principal para "ver" columnas ocultas
+  try {
+    // Intentar mover el foco a la derecha para obligar carga de columnas laterales
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(100);
+    await page.keyboard.press('ArrowRight');
+  } catch (e) { }
+
+  // Resetear timer
+  nextScrollTime = Date.now() + 60000;
 }
 
 // Configuración de rutas (Legacy Port)
@@ -576,65 +634,87 @@ function crearCarpetas() {
   });
 }
 
-// Función para limpiar archivos los lunes
+// Función para limpiar archivos los lunes (ARCHIVADO)
 function limpiarArchivosLunes() {
   const hoy = new Date();
   const diaSemana = hoy.getDay(); // 0 = domingo, 1 = lunes
 
   if (diaSemana === 1) { // Si es lunes
-    console.log('🧹 Es lunes, limpiando archivos...');
-    let archivosEliminados = 0;
+    console.log('🧹 Es lunes, archivando contenido de la semana anterior...');
 
-    // Limpiar videos (Principal y Respaldo)
-    [CARPETA_VIDEOS, CARPETA_VIDEOS_RESPALDO].forEach(dir => {
-      if (fs.existsSync(dir)) {
+    // Crear carpeta de archivo
+    const archiveDir = path.join(CARPETA_BASE, 'archive', `${hoy.getFullYear()}-W${getWeekNumber(hoy)}`);
+    if (!fs.existsSync(archiveDir)) fs.mkdirSync(archiveDir, { recursive: true });
+
+    let archivosMovidos = 0;
+
+    // Función auxiliar de archivado
+    const archivar = (origen, destino) => {
+      if (fs.existsSync(origen)) {
         try {
-          const archivos = fs.readdirSync(dir);
-          archivos.forEach(archivo => {
-            if (archivo.match(/\.(mp4|webm|mkv)$/)) {
-              fs.unlinkSync(path.join(dir, archivo));
-              archivosEliminados++;
+          const files = fs.readdirSync(origen);
+          files.forEach(file => {
+            // Mover solo archivos multimedia
+            if (file.match(/\.(mp4|webm|mkv|jpg|jpeg|png|gif)$/)) {
+              const srcPath = path.join(origen, file);
+              const destPath = path.join(destino, file);
+              // Rename corre "mover" en el mismo fs
+              try {
+                fs.renameSync(srcPath, destPath);
+                archivosMovidos++;
+              } catch (err) {
+                // Si falla rename (ej. distitos discos), intentar copy+unlink
+                fs.copyFileSync(srcPath, destPath);
+                fs.unlinkSync(srcPath);
+                archivosMovidos++;
+              }
             }
           });
-        } catch (e) { console.error(`Error limpiando videos en ${dir}:`, e.message); }
+        } catch (e) { console.error(`Error archivando ${origen}:`, e.message); }
       }
-    });
+    };
 
-    // Limpiar imágenes (Principal y Respaldo)
-    [CARPETA_IMAGENES, CARPETA_IMAGENES_RESPALDO].forEach(dir => {
-      if (fs.existsSync(dir)) {
-        try {
-          const archivos = fs.readdirSync(dir);
-          archivos.forEach(archivo => {
-            if (archivo.match(/\.(jpg|jpeg|png|gif)$/)) {
-              fs.unlinkSync(path.join(dir, archivo));
-              archivosEliminados++;
-            }
-          });
-        } catch (e) { console.error(`Error limpiando imagenes en ${dir}:`, e.message); }
-      }
-    });
+    // Archivar carpetas
+    archivar(CARPETA_VIDEOS, archiveDir);
+    archivar(CARPETA_IMAGENES, archiveDir);
 
+    // También respaldos por si acaso
+    archivar(CARPETA_VIDEOS_RESPALDO, archiveDir);
+    archivar(CARPETA_IMAGENES_RESPALDO, archiveDir);
 
-
-    // Limpiar historial persistente
+    // Limpiar historial pero guardando copia
     const SEEN_FILE = path.join(__dirname, 'tweets-seen.json');
     if (fs.existsSync(SEEN_FILE)) {
       try {
+        const backupSeen = path.join(archiveDir, 'tweets-seen-week.json');
+        fs.copyFileSync(SEEN_FILE, backupSeen);
         fs.unlinkSync(SEEN_FILE);
-        console.log('🧹 Historial de tweets vistos (semana anterior) eliminado.');
-      } catch (e) { console.error('Error borrando historial:', e.message); }
+        console.log('🧹 Historial reiniciado (copia guardada en archivo).');
+      } catch (e) { console.error('Error archivando historial:', e.message); }
     }
 
-    if (archivosEliminados > 0) {
-      console.log(`✅ Limpieza completada: ${archivosEliminados} archivos eliminados`);
-      if (bot) bot.sendMessage(TELEGRAM_CHAT_ID, `🧹 Limpieza semanal: ${archivosEliminados} archivos eliminados`);
+    if (archivosMovidos > 0) {
+      console.log(`✅ Archivado semanal completado: ${archivosMovidos} archivos movidos a ${archiveDir}`);
+      if (bot) bot.sendMessage(TELEGRAM_CHAT_ID, `📦 Archivado semanal: ${archivosMovidos} items movidos a\n${archiveDir}`);
     }
 
     // Limpiar estadísticas antiguas (EstadisticasMedios)
     const reportsManager = new ReportsManager();
     reportsManager.stats.limpiarEstadisticasAntiguas();
   }
+}
+
+function getWeekNumber(d) {
+  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return weekNo;
+}
+
+// Normalización de texto para búsqueda flexible
+function normalizeText(text) {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 async function descargarVideo(tweetUrl, tweetId, esReintento = false) {
@@ -733,6 +813,18 @@ async function descargarImagen(url, tweetId, index) {
   });
 }
 
+async function descargarImagenSimple(url, dest) {
+  return new Promise((resolve) => {
+    https.get(url, (res) => {
+      if (res.statusCode === 200) {
+        const file = fs.createWriteStream(dest);
+        res.pipe(file);
+        file.on('finish', () => { file.close(resolve); });
+      } else resolve();
+    }).on('error', () => resolve());
+  });
+}
+
 // Función para escapar caracteres de Markdown (V1)
 function escapeMarkdown(text) {
   return text.replace(/([_*[`])/g, '\\$1');
@@ -741,248 +833,294 @@ function escapeMarkdown(text) {
 async function verificarNuevosTweets(page, keywords, tweetsEnviados, count, bot) {
   try {
     const tweets = await page.$$('[data-testid="tweet"]');
-    for (const tweet of tweets) {
-      // Intentar extraer datos ESTABLES primero
-      let authorHandle = "";
-      let stableText = "";
+    const candidates = [];
 
+    // 1. Extracción Masiva
+    for (const tweet of tweets) {
       try {
+        // Datos básicos
+        let authorHandle = "";
+        let stableText = "";
+        let authorName = "Desconocido";
+        let tweetUrl = null;
+        let tweetTime = "N/A";
+        let timeAgo = "";
+
+        // Extracción segura
         const userEl = await tweet.$('[data-testid="User-Name"]');
         if (userEl) {
           const userText = await userEl.innerText();
           const parts = userText.split('\n');
+          if (parts.length >= 1) authorName = parts[0];
           if (parts.length >= 2) authorHandle = parts[1];
         }
 
         const contentEl = await tweet.$('[data-testid="tweetText"]');
-        if (contentEl) {
-          stableText = await contentEl.innerText();
-        }
-      } catch (e) { }
+        if (contentEl) stableText = await contentEl.innerText();
 
-      // Si no pudimos extraer lo mínimo, saltamos
-      if (!stableText) continue;
+        // Si no hay texto, intentar OCR si no se ha hecho, pero por rendimiento
+        // en esta fase solo filtramos por texto visible. El OCR se hará bajo demanda si pasa filtro.
+        if (!stableText) continue;
 
-      // Generar ID estable basado solo en Handle + Texto (Ignorando hora relativa)
-      const uniqueString = `${authorHandle}|${stableText.trim()}`;
-      const tweetId = crypto.createHash('md5').update(uniqueString).digest('hex').substring(0, 8);
+        // Limpieza de texto para comparación
+        const cleanText = stableText.trim();
 
-      // Verificación en memoria
-      if (tweetsEnviados.has(tweetId)) continue;
+        // ID Único (Handle + Texto)
+        const uniqueString = `${authorHandle}|${cleanText}`;
+        const tweetId = crypto.createHash('md5').update(uniqueString).digest('hex').substring(0, 8);
 
-      // Verificación en archivo (Soporte para formato antiguo string[] y nuevo object[])
-      const SEEN_FILE = path.join(__dirname, 'tweets-seen.json');
-      let currentHistory = [];
-      try {
+        // Si ya fue enviado, saltar
+        if (tweetsEnviados.has(tweetId)) continue;
+
+        // Verificar historial persistente
+        const SEEN_FILE = path.join(__dirname, 'tweets-seen.json');
         if (fs.existsSync(SEEN_FILE)) {
-          currentHistory = JSON.parse(fs.readFileSync(SEEN_FILE));
-          // Verificar si existe el ID en el historial (compatible con ambos formatos)
-          const exists = currentHistory.some(item =>
+          const history = JSON.parse(fs.readFileSync(SEEN_FILE));
+          const exists = history.some(item =>
             (typeof item === 'string' && item === tweetId) ||
             (typeof item === 'object' && item.id === tweetId)
           );
-
           if (exists) {
             tweetsEnviados.add(tweetId);
             continue;
           }
         }
+
+        // Extraer estadísticas para ranking (Views/Likes)
+        let metricScore = 0;
+        try {
+          const groups = await tweet.getAttribute('aria-label'); // A veces contiene stats
+          // Fallback: tratar de sacar números de los botones de acción
+          // Por simplicidad, usaremos el orden de aparición como proxy de relevancia si no hay data
+          // Pero si el usuario usa "Latest", el primero es el más nuevo. 
+          // Si usa "Top", el primero es el más relevante.
+        } catch (e) { }
+
+        // URL
+        const timeEl = await tweet.$('time');
+        if (timeEl) {
+          const isoTime = await timeEl.getAttribute('datetime');
+          const d = new Date(isoTime);
+          tweetTime = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+          const now = new Date();
+          const diffMs = now - d;
+          const diffSecs = Math.floor(diffMs / 1000);
+          const diffMins = Math.floor(diffMs / 60000);
+          const diffHrs = Math.floor(diffMs / 3600000);
+          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+          if (diffDays > 0) timeAgo = ` *${diffDays}d*`;
+          else if (diffHrs > 0) timeAgo = ` *${diffHrs}h*`;
+          else if (diffMins > 0) timeAgo = ` *${diffMins}m*`;
+          else timeAgo = ` *${diffSecs}s*`;
+
+          const parent = await timeEl.evaluateHandle(el => el.closest('a'));
+          const href = await parent.getAttribute('href');
+          tweetUrl = href ? (href.startsWith('http') ? href : `https://x.com${href}`) : null;
+        }
+
+        candidates.push({
+          id: tweetId,
+          element: tweet,
+          handle: authorHandle,
+          name: authorName,
+          text: stableText,
+          cleanText: normalizeText(stableText).substring(0, 50), // Firma corta para agrupamiento
+          url: tweetUrl,
+          time: tweetTime,
+          timeAgo: timeAgo,
+          originalText: cleanText // Para envío
+        });
+
       } catch (e) { }
+    }
 
-      // Verificar palabras clave en el texto estable
-      if (keywords.some(k => stableText.toLowerCase().includes(k.toLowerCase()))) {
-        tweetsEnviados.add(tweetId);
-        count++;
-        console.log(`📢 Nuevo Tweet Detectado! [${tweetId}]`);
+    // 2. Agrupamiento por Contenido (Firma de texto)
+    const groups = {};
+    for (const c of candidates) {
+      if (!groups[c.cleanText]) groups[c.cleanText] = [];
+      groups[c.cleanText].push(c);
+    }
 
-        // Registrar en estadísticas
+    // 3. Procesamiento por Grupo
+    for (const key in groups) {
+      const group = groups[key];
+      // Seleccionar el "Principal" (El que tenga URL válida o el primero)
+      const mainTweet = group.find(t => t.url) || group[0];
+      const others = group.filter(t => t !== mainTweet);
+
+      // Verificar palabra clave en el Grupo (usando texto del main)
+      // Check OCR on Main Tweet ONLY if text match fails
+      let matchesKeyword = false;
+      let ocrText = "";
+
+      const fullTextMain = normalizeText(mainTweet.text);
+      let foundKeyword = keywords.find(k => fullTextMain.includes(normalizeText(k)));
+
+      // Si no encuentra por texto, intentar OCR en el Main Tweet
+      if (!foundKeyword && ocrWorker) {
         try {
-          const reportsManager = new ReportsManager();
-          reportsManager.stats.registrarTweet({
-            texto: stableText,
-            palabrasClaveEncontradas: keywords.filter(k => stableText.toLowerCase().includes(k.toLowerCase()))
-          });
-        } catch (e) { console.error('Error registrando estadística:', e.message); }
-
-        // Persistir ID Nuevo con metadatos para debugging
-        try {
-          // Convertir historial antiguo a objetos si es necesario
-          if (currentHistory.length > 0 && typeof currentHistory[0] === 'string') {
-            currentHistory = currentHistory.map(id => ({ id, handle: 'migrated', text: 'migrated', seenAt: new Date().toISOString() }));
-          }
-
-          currentHistory.push({
-            id: tweetId,
-            handle: authorHandle,
-            text: stableText.substring(0, 280), // Guardar contexto completo
-            seenAt: new Date().toISOString()
-          });
-
-          // Mantener solo los últimos 500 para no inflar el archivo eternamente
-          if (currentHistory.length > 500) currentHistory = currentHistory.slice(-500);
-
-          fs.writeFileSync(SEEN_FILE, JSON.stringify(currentHistory, null, 2));
-        } catch (e) { console.error('Error guardando ID persistente:', e.message); }
-
-        // Extraer URL del tweet de forma segura
-        let tweetUrl = null;
-        try {
-          const timeEl = await tweet.$('time');
-          if (timeEl) {
-            const parent = await timeEl.evaluateHandle(el => el.closest('a'));
-            const href = await parent.getAttribute('href');
-            if (href) {
-              // Evitar doble dominio si href ya es absoluto
-              if (href.startsWith('http')) {
-                tweetUrl = href;
-              } else {
-                tweetUrl = `https://x.com${href}`;
+          const images = await mainTweet.element.$$('img[src*="pbs.twimg.com/media"]');
+          if (images.length > 0) {
+            const src = await images[0].getAttribute('src');
+            if (src) {
+              const tempPath = path.join(__dirname, `ocr_temp_${mainTweet.id}.jpg`);
+              await descargarImagenSimple(src, tempPath);
+              if (fs.existsSync(tempPath)) {
+                const { data: { text } } = await ocrWorker.recognize(tempPath);
+                ocrText = text || "";
+                fs.unlinkSync(tempPath);
               }
             }
           }
         } catch (e) { }
+        const fullTextWithOcr = normalizeText(mainTweet.text + " " + ocrText);
+        foundKeyword = keywords.find(k => fullTextWithOcr.includes(normalizeText(k)));
+      }
 
-        // Medios
+      if (foundKeyword) {
+        console.log(`📢 Encontrado Grupo de Tweets: ${group.length} coincidencias. Enviando Principal: ${mainTweet.id}`);
+
+        // Marcar TODOS como enviados para evitar duplicados futuros
+        group.forEach(t => tweetsEnviados.add(t.id));
+        count += group.length;
+
+        // Registrar Stats
+        try {
+          const reportsManager = new ReportsManager();
+          reportsManager.stats.registrarTweet({
+            texto: mainTweet.text,
+            handle: mainTweet.handle, // Pasar handle para métricas oficiales
+            palabrasClaveEncontradas: [foundKeyword] // Simplificado
+          });
+
+          // --- LÓGICA DE DESCUBRIMIENTO INTELIGENTE ---
+          const TRUSTED_SEEDS = ['@MorelosCongreso', '@GobiernoMorelos', '@TSJMorelos'];
+          if (TRUSTED_SEEDS.some(s => s.toLowerCase() === mainTweet.handle.toLowerCase())) {
+            // Buscar menciones a potenciales nuevos actores
+            const mentions = mainTweet.originalText.match(/@[\w_]+/g) || [];
+            const keywordsToTrigger = ['diputado', 'diputada', 'legislador', 'secretario', 'secretaria', 'magistrado', 'juez', 'fiscal'];
+
+            for (const mention of mentions) {
+              const cleanMention = mention.substring(1); // sin @ for search if needed, but we store variants
+              // Si NO está ya en nuestras keywords (buscamos si alguna keyword incluye el handle)
+              const alreadyTracked = keywords.some(k => k.toLowerCase().includes(mention.toLowerCase()));
+
+              if (!alreadyTracked) {
+                // Verificar contexto (si el tweet dice "Diputado @Tal")
+                const lowerText = mainTweet.originalText.toLowerCase();
+                const contextMatch = keywordsToTrigger.some(trigger => {
+                  // Simple check: trigger word appears before mention or strictly related
+                  return lowerText.includes(trigger);
+                });
+
+                if (contextMatch) {
+                  console.log(`🌟 DESCUBRIMIENTO: Detectado posible oficial ${mention} vía ${mainTweet.handle}`);
+
+                  // Agregar a keywords.json
+                  try {
+                    const kPath = path.join(__dirname, 'keywords.json');
+                    const kData = JSON.parse(fs.readFileSync(kPath));
+
+                    // Agregar a legislativo por defecto si viene de congreso, o gobierno, o generic 'descubiertos'
+                    if (!kData.categorias.descubiertos) kData.categorias.descubiertos = [];
+                    if (!kData.categorias.descubiertos.includes(mention)) {
+                      kData.categorias.descubiertos.push(mention);
+                      fs.writeFileSync(kPath, JSON.stringify(kData, null, 2));
+
+                      // Notificar
+                      if (bot) bot.sendMessage(TELEGRAM_CHAT_ID, `🆕 *NUEVA CUENTA DETECTADA*\n\nEl sistema agregó automáticamente a *${mention}* a la lista de monitoreo.\n\n📍 Fuente: ${mainTweet.handle}\nTweet: "${mainTweet.text.substring(0, 50)}..."`, { parse_mode: 'Markdown' });
+
+                      // Recargar keywords en memoria (parcial, idealmente requires restart but we push to runtime array)
+                      keywords.push(mention);
+                    }
+                  } catch (e) { console.error('Error auto-adding keyword:', e); }
+                }
+              }
+            }
+          }
+          // ---------------------------------------------
+        } catch (e) { }
+
+        // Persistencia (Batch)
+        const SEEN_FILE = path.join(__dirname, 'tweets-seen.json');
+        let currentHistory = [];
+        if (fs.existsSync(SEEN_FILE)) currentHistory = JSON.parse(fs.readFileSync(SEEN_FILE));
+
+        group.forEach(t => {
+          currentHistory.push({
+            id: t.id,
+            handle: t.handle,
+            text: t.text.substring(0, 50),
+            seenAt: new Date().toISOString()
+          });
+        });
+        if (currentHistory.length > 500) currentHistory = currentHistory.slice(-500);
+        fs.writeFileSync(SEEN_FILE, JSON.stringify(currentHistory, null, 2));
+
+
+        // Descargar Medios (Solo del Main)
         const mediaPaths = [];
-
-        // 1. Videos (yt-dlp si hay URL)
-        if (tweetUrl) {
-          // Verificar si parece tener video
-          const hasVideo = await tweet.$('[data-testid="videoPlayer"], [data-testid="playButton"]');
+        // ... (Lógica de descarga de videos/imágenes igual que antes, usando mainTweet.element)
+        // Videos
+        if (mainTweet.url) {
+          const hasVideo = await mainTweet.element.$('[data-testid="videoPlayer"], [data-testid="playButton"]');
           if (hasVideo) {
-            console.log(`🎬 Descargando video para ${tweetId}...`);
-            const videoPath = await descargarVideo(tweetUrl, tweetId);
+            const videoPath = await descargarVideo(mainTweet.url, mainTweet.id);
             if (videoPath) mediaPaths.push({ type: 'video', media: videoPath });
           }
         }
-
-        // 2. Imágenes
-        const imgs = await tweet.$$('img[src*="pbs.twimg.com/media"]');
+        // Imágenes
+        const imgs = await mainTweet.element.$$('img[src*="pbs.twimg.com/media"]');
         for (let i = 0; i < imgs.length; i++) {
           const src = await imgs[i].getAttribute('src');
           if (src) {
-            const highQualitySrc = src.replace('format=jpg&name=small', 'format=jpg&name=large');
-            const imgPath = await descargarImagen(highQualitySrc, tweetId, i);
-            if (imgPath) mediaPaths.push({ type: 'photo', media: imgPath });
+            const hq = src.replace('format=jpg&name=small', 'format=jpg&name=large');
+            const p = await descargarImagen(hq, mainTweet.id, i);
+            if (p) mediaPaths.push({ type: 'photo', media: p });
           }
         }
 
-        // Extraer info detallada (Autor, Hora, Diferencia, Texto Limpio)
-        let authorName = "Desconocido";
-        // authorHandle ya lo tenemos
-        let tweetTime = "N/A";
-        let timeAgo = "";
-        let cleanText = escapeMarkdown(stableText.trim());
-
-        try {
-          const userEl = await tweet.$('[data-testid="User-Name"]');
-          if (userEl) {
-            const userText = await userEl.innerText();
-            const parts = userText.split('\n');
-            if (parts.length >= 2) {
-              authorName = parts[0];
-              // parts[1] es el handle
-            }
-          }
-
-          // 2. Extraer Tiempo y Calcular Diferencia
-          const timeEl = await tweet.$('time');
-          if (timeEl) {
-            const isoTime = await timeEl.getAttribute('datetime'); // ISO format
-            if (isoTime) {
-              const d = new Date(isoTime);
-              tweetTime = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-
-              const now = new Date();
-              const diffMs = now - d;
-              const diffSecs = Math.floor(diffMs / 1000);
-              const diffMins = Math.floor(diffMs / 60000);
-              const diffHrs = Math.floor(diffMs / 3600000);
-              const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-              if (diffDays > 0) timeAgo = ` *${diffDays}d*`;
-              else if (diffHrs > 0) timeAgo = ` *${diffHrs}h*`;
-              else if (diffMins > 0) timeAgo = ` *${diffMins}m*`;
-              else timeAgo = ` *${diffSecs}s*`;
-            }
-          }
-
-          // 3. Texto ya extraído en stableText
-          // Intentar expandir tweet si hay botón "Show more" (aunque ya leímos, si había show more tal vez leímos incompleto, reintentar)
-          /* NOTA: Para no complicar el hash, usamos el texto inicial para el ID. 
-             Pero para el ENVÍO, podemos intentar expandir y releer para tener el full text. */
-
-          try {
-            const showMoreBtn = await tweet.$('text=/Show more|Mostrar más/i');
-            if (showMoreBtn) {
-              await showMoreBtn.click({ timeout: 1000 }).catch(() => { });
-              await page.waitForTimeout(500);
-              // Releer texto completo para el mensaje
-              const contentEl = await tweet.$('[data-testid="tweetText"]');
-              if (contentEl) {
-                const rawBody = await contentEl.innerText();
-                cleanText = escapeMarkdown(rawBody.trim());
-              }
-            }
-          } catch (e) { }
-
-        } catch (e) {
-          console.error('Error extrayendo detalles:', e.message);
-        }
-
-        // Enviar a Telegram con formato mejorado
+        // Enviar Telegram
         if (bot) {
-          const cleanName = escapeMarkdown(authorName);
-          const cleanHandle = escapeMarkdown(authorHandle);
+          const cleanName = escapeMarkdown(mainTweet.name);
+          const cleanHandle = escapeMarkdown(mainTweet.handle);
+          const cleanTextMsg = escapeMarkdown(mainTweet.originalText);
 
-          const caption = `*${cleanName}* _${cleanHandle}_\n• ${tweetTime}${timeAgo}\n\n${cleanText}\n\n🆔 \`${tweetId}\`\n🔗 Ver Tweet: ${tweetUrl || ''}`;
+          let caption = `*${cleanName}* _${cleanHandle}_\n• ${mainTweet.time}${mainTweet.timeAgo}\n\n${cleanTextMsg}\n\n🆔 \`${mainTweet.id}\`\n🔗 Ver Tweet: ${mainTweet.url || ''}`;
 
+          // Append Duplicates info
+          if (others.length > 0) {
+            const otherHandles = others.map(o => o.handle).filter(h => h !== mainTweet.handle);
+            // Unique handles
+            const uniqueOthers = [...new Set(otherHandles)];
+            if (uniqueOthers.length > 0) {
+              caption += `\n\n👀 *También visto en:* ${uniqueOthers.map(h => escapeMarkdown(h)).join(', ')}`;
+            }
+          }
+
+          // Envio de medios (Copiado de lógica anterior)
           if (mediaPaths.length > 0) {
-            // Enviar como grupo o individual
             if (mediaPaths.some(m => m.type === 'video')) {
-              // Video: Caption va en el video si es único
               for (const m of mediaPaths) {
-                if (m.type === 'video') {
-                  await bot.sendVideo(TELEGRAM_CHAT_ID, m.media, { caption: caption, parse_mode: 'Markdown' }).catch(e => console.error(e.message));
-                } else {
-                  await bot.sendPhoto(TELEGRAM_CHAT_ID, m.media).catch(e => console.error(e.message));
-                }
+                if (m.type === 'video') await bot.sendVideo(TELEGRAM_CHAT_ID, m.media, { caption, parse_mode: 'Markdown' }).catch(e => console.error(e));
+                else await bot.sendPhoto(TELEGRAM_CHAT_ID, m.media).catch(e => console.error(e));
               }
             } else {
-              // Solo fotos (MediaGroup)
-              const mediaGroup = mediaPaths.map(m => ({
-                type: 'photo',
-                media: m.media,
-                // Solo poner caption en la primera imagen
-                caption: m === mediaPaths[0] ? caption : '',
-                parse_mode: 'Markdown'
-              }));
-
-              try {
-                if (mediaGroup.length === 1) {
-                  await bot.sendPhoto(TELEGRAM_CHAT_ID, mediaGroup[0].media, { caption: caption, parse_mode: 'Markdown' });
-                } else {
-                  await bot.sendMediaGroup(TELEGRAM_CHAT_ID, mediaGroup);
-                }
-              } catch (e) {
-                // Fallback
-                console.error("Error enviando grupo, enviando texto e imágenes separado");
-                await bot.sendMessage(TELEGRAM_CHAT_ID, caption, { parse_mode: 'Markdown', disable_web_page_preview: true });
-                for (const m of mediaPaths) {
-                  await bot.sendPhoto(TELEGRAM_CHAT_ID, m.media);
-                }
-              }
+              const mediaGroup = mediaPaths.map(m => ({ type: 'photo', media: m.media, caption: m === mediaPaths[0] ? caption : '', parse_mode: 'Markdown' }));
+              if (mediaGroup.length === 1) await bot.sendPhoto(TELEGRAM_CHAT_ID, mediaGroup[0].media, { caption, parse_mode: 'Markdown' });
+              else await bot.sendMediaGroup(TELEGRAM_CHAT_ID, mediaGroup);
             }
           } else {
-            // Solo texto
-            await bot.sendMessage(TELEGRAM_CHAT_ID, caption, { parse_mode: 'Markdown', disable_web_page_preview: true }).catch(e => console.error('Error enviando telegram texto:', e.message));
+            await bot.sendMessage(TELEGRAM_CHAT_ID, caption, { parse_mode: 'Markdown', disable_web_page_preview: true });
           }
         }
       }
     }
+
     return count;
   } catch (e) {
-    console.error('Error verificación:', e.message);
+    console.error('Error verificación batch:', e.message);
     throw e;
   }
 }
@@ -999,7 +1137,8 @@ class ReportsManager {
     const weeklyStats = {
       totalTweets: 0,
       medios: {},
-      topTemas: {}
+      topTemas: {},
+      interaccionesOficiales: {}
     };
 
     try {
@@ -1039,6 +1178,17 @@ class ReportsManager {
               Object.entries(content.palabrasClaveDetectadas).forEach(([tema, count]) => {
                 if (!weeklyStats.topTemas[tema]) weeklyStats.topTemas[tema] = 0;
                 weeklyStats.topTemas[tema] += count;
+              });
+            }
+
+            // Sumar Interacciones Oficiales
+            if (content.interaccionesOficiales) {
+              Object.entries(content.interaccionesOficiales).forEach(([fuente, destinos]) => {
+                if (!weeklyStats.interaccionesOficiales[fuente]) weeklyStats.interaccionesOficiales[fuente] = {};
+                Object.entries(destinos).forEach(([destino, count]) => {
+                  if (!weeklyStats.interaccionesOficiales[fuente][destino]) weeklyStats.interaccionesOficiales[fuente][destino] = 0;
+                  weeklyStats.interaccionesOficiales[fuente][destino] += count;
+                });
               });
             }
 
@@ -1087,6 +1237,22 @@ class ReportsManager {
     topTemas.forEach((t, i) => {
       msg += `${i + 1}. *${t[0]}*: ${t[1]} menciones\n`;
     });
+
+    // Reporte de Interacciones Oficiales (@MorelosCongreso etc)
+    if (Object.keys(stats.interaccionesOficiales).length > 0) {
+      msg += `\n🏛️ *ACTIVIDAD OFICIAL (Menciones)*\n`;
+      Object.entries(stats.interaccionesOficiales).forEach(([origen, destinos]) => {
+        // Filtrar solo si el origen es de interés (aunque ya filtramos al registrar)
+        msg += `\n📌 *${origen}:*\n`;
+        // Top 5 mencionados por esta cuenta
+        Object.entries(destinos)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 5)
+          .forEach(([dest, count]) => {
+            msg += `   • ${dest}: ${count} veces\n`;
+          });
+      });
+    }
 
     msg += `\n🤖 _Monitor Legislativo Morelos_`;
 

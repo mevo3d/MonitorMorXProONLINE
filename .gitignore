@@ -70,11 +70,16 @@ duplicados_*.txt
 duplicados_*.json
 
 # Sesiones de WhatsApp y navegador (contienen datos sensibles)
+# Sesiones de navegador y datos
 sesion-whatsapp/
 sesion-whatsapp-mejorada/
 sesion-whatsapp-backup/
 sesion-x/
-whatsapp-stats.json
+sesion-xpro/
+browser-data/
+tweets-seen.json
+*.log
+ocr_temp_*.jpg
 
 # Archivos temporales del sistema
 nul

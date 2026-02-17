@@ -13,10 +13,11 @@ class EstadisticasMedios {
       mediosPorTweet: {},
       tweetsPorHora: {},
       palabrasClaveDetectadas: {},
+      interaccionesOficiales: {}, // Nueva métrica: @Fuente -> @Destino/Keyword -> Conteo
       horaInicio: new Date().toISOString(),
       ultimaActualizacion: new Date().toISOString()
     };
-    
+
     this.inicializar();
   }
 
@@ -25,11 +26,11 @@ class EstadisticasMedios {
     if (!fs.existsSync(this.carpetaEstadisticas)) {
       fs.mkdirSync(this.carpetaEstadisticas, { recursive: true });
     }
-    
+
     // Definir archivo del día
     const hoy = new Date().toISOString().split('T')[0];
     this.archivoEstadisticasHoy = path.join(this.carpetaEstadisticas, `estadisticas-${hoy}.json`);
-    
+
     // Cargar estadísticas existentes o crear nuevas
     if (fs.existsSync(this.archivoEstadisticasHoy)) {
       this.cargarEstadisticas();
@@ -51,7 +52,7 @@ class EstadisticasMedios {
     try {
       this.estadisticasHoy.ultimaActualizacion = new Date().toISOString();
       fs.writeFileSync(
-        this.archivoEstadisticasHoy, 
+        this.archivoEstadisticasHoy,
         JSON.stringify(this.estadisticasHoy, null, 2)
       );
     } catch (error) {
@@ -63,10 +64,10 @@ class EstadisticasMedios {
     const hora = new Date().getHours();
     const medio = this.extraerNombreMedio(tweet);
     const palabrasClave = tweet.palabrasClaveEncontradas || [];
-    
+
     // Incrementar contador total
     this.estadisticasHoy.totalTweets++;
-    
+
     // Registrar medio
     if (medio) {
       if (!this.estadisticasHoy.mediosPorTweet[medio]) {
@@ -78,10 +79,10 @@ class EstadisticasMedios {
           palabrasClaveDetectadas: {}
         };
       }
-      
+
       this.estadisticasHoy.mediosPorTweet[medio].tweets++;
       this.estadisticasHoy.mediosPorTweet[medio].ultimaPublicacion = new Date().toISOString();
-      
+
       // Registrar palabras clave por medio
       palabrasClave.forEach(palabra => {
         if (!this.estadisticasHoy.mediosPorTweet[medio].palabrasClaveDetectadas[palabra]) {
@@ -90,13 +91,13 @@ class EstadisticasMedios {
         this.estadisticasHoy.mediosPorTweet[medio].palabrasClaveDetectadas[palabra]++;
       });
     }
-    
+
     // Registrar por hora
     if (!this.estadisticasHoy.tweetsPorHora[hora]) {
       this.estadisticasHoy.tweetsPorHora[hora] = 0;
     }
     this.estadisticasHoy.tweetsPorHora[hora]++;
-    
+
     // Registrar palabras clave globales
     palabrasClave.forEach(palabra => {
       if (!this.estadisticasHoy.palabrasClaveDetectadas[palabra]) {
@@ -104,10 +105,30 @@ class EstadisticasMedios {
       }
       this.estadisticasHoy.palabrasClaveDetectadas[palabra]++;
     });
-    
+
+    // Registrar Interacciones Oficiales (Si el tweet viene de una cuenta monitoreada)
+    // El 'medio' aquí es el handle extraído (sin @ usualmente en extraerNombreMedio, pero tweet.handle viene directo)
+    const handleAutor = tweet.handle || ('@' + medio);
+    const cuentasOficiales = ['@MorelosCongreso', '@GobiernoMorelos', '@TSJMorelos']; // Hardcoded base seeds
+
+    // Normalizar para comparación (case insensitive)
+    const esOficial = cuentasOficiales.some(c => c.toLowerCase() === handleAutor.toLowerCase());
+
+    if (esOficial) {
+      if (!this.estadisticasHoy.interaccionesOficiales[handleAutor]) {
+        this.estadisticasHoy.interaccionesOficiales[handleAutor] = {};
+      }
+      palabrasClave.forEach(palabra => {
+        if (!this.estadisticasHoy.interaccionesOficiales[handleAutor][palabra]) {
+          this.estadisticasHoy.interaccionesOficiales[handleAutor][palabra] = 0;
+        }
+        this.estadisticasHoy.interaccionesOficiales[handleAutor][palabra]++;
+      });
+    }
+
     // Actualizar total de medios únicos
     this.estadisticasHoy.totalMedios = Object.keys(this.estadisticasHoy.mediosPorTweet).length;
-    
+
     // Guardar cada 10 tweets
     if (this.estadisticasHoy.totalTweets % 10 === 0) {
       this.guardarEstadisticas();
@@ -120,7 +141,7 @@ class EstadisticasMedios {
     try {
       const texto = tweet.texto || tweet.text || '';
       const lineas = texto.split('\n');
-      
+
       // Buscar línea con @ (usuario)
       for (const linea of lineas) {
         if (linea.includes('@')) {
@@ -131,7 +152,7 @@ class EstadisticasMedios {
           }
         }
       }
-      
+
       // Si no hay @, tomar la primera línea no vacía
       for (const linea of lineas) {
         const trimmed = linea.trim();
@@ -139,7 +160,7 @@ class EstadisticasMedios {
           return trimmed.substring(0, 50); // Máximo 50 caracteres
         }
       }
-      
+
       return 'Desconocido';
     } catch (error) {
       return 'Desconocido';
@@ -158,7 +179,7 @@ class EstadisticasMedios {
     const horasActivas = Object.entries(this.estadisticasHoy.tweetsPorHora)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 3);
-    
+
     return {
       fecha: this.estadisticasHoy.fecha,
       totalTweets: this.estadisticasHoy.totalTweets,
@@ -181,32 +202,32 @@ class EstadisticasMedios {
 
   generarReporteTelegram() {
     const resumen = this.obtenerResumenDiario();
-    
+
     let reporte = `📊 *ESTADÍSTICAS DEL DÍA - ${resumen.fecha}*\n`;
     reporte += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-    
+
     reporte += `📈 *RESUMEN GENERAL*\n`;
     reporte += `• Total de tweets: ${resumen.totalTweets}\n`;
     reporte += `• Medios únicos: ${resumen.totalMedios}\n\n`;
-    
+
     reporte += `🏆 *TOP 5 MEDIOS MÁS ACTIVOS*\n`;
     resumen.topMedios.forEach((medio, index) => {
       const medalla = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '📰';
       reporte += `${medalla} ${medio.nombre}: ${medio.tweets} tweets (${medio.porcentaje}%)\n`;
     });
-    
+
     reporte += `\n⏰ *HORAS MÁS ACTIVAS*\n`;
     resumen.horasMasActivas.forEach(hora => {
       reporte += `• ${hora.hora}: ${hora.tweets} tweets\n`;
     });
-    
+
     if (resumen.palabrasClaveTop.length > 0) {
       reporte += `\n🔑 *PALABRAS CLAVE MÁS DETECTADAS*\n`;
       resumen.palabrasClaveTop.forEach(pc => {
         reporte += `• ${pc.palabra}: ${pc.count} veces\n`;
       });
     }
-    
+
     return reporte;
   }
 
@@ -215,7 +236,7 @@ class EstadisticasMedios {
     if (!medio) {
       return null;
     }
-    
+
     return {
       nombre: medio.nombre,
       tweets: medio.tweets,
@@ -234,7 +255,7 @@ class EstadisticasMedios {
       const archivos = fs.readdirSync(this.carpetaEstadisticas);
       const fechaLimite = new Date();
       fechaLimite.setDate(fechaLimite.getDate() - 30);
-      
+
       archivos.forEach(archivo => {
         const match = archivo.match(/estadisticas-(\d{4}-\d{2}-\d{2})\.json/);
         if (match) {
