@@ -1,3 +1,3 @@
-2026/02/17-12:59:58.189 1804c Reusing MANIFEST C:\Users\BALERION\proyectos-automatizacion\Monitor-LegislativoMor\browser-data\Default\IndexedDB\https_pro.x.com_0.indexeddb.leveldb/MANIFEST-000001
-2026/02/17-12:59:58.190 1804c Recovering log #3
-2026/02/17-12:59:58.190 1804c Reusing old log C:\Users\BALERION\proyectos-automatizacion\Monitor-LegislativoMor\browser-data\Default\IndexedDB\https_pro.x.com_0.indexeddb.leveldb/000003.log 
+2026/02/18-14:22:06.004 19005 Reusing MANIFEST /root/MonitorMorXPro/browser-data/Default/IndexedDB/https_pro.x.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/02/18-14:22:06.004 19005 Recovering log #3
+2026/02/18-14:22:06.005 19005 Reusing old log /root/MonitorMorXPro/browser-data/Default/IndexedDB/https_pro.x.com_0.indexeddb.leveldb/000003.log 

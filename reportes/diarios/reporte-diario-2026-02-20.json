@@ -1,0 +1,112 @@
+{
+  "fecha": "2026-02-20",
+  "tipo": "diario",
+  "generadoEn": "2026-02-20T03:01:31.204Z",
+  "estadisticas": {
+    "fecha": "2026-02-19",
+    "totalTweets": 375,
+    "totalMedios": 80,
+    "conteoPorPoder": {
+      "legislativo": 86,
+      "gobierno": 65,
+      "judicial": 2,
+      "otros": 210
+    },
+    "topMedios": [
+      {
+        "nombre": "@DiariodeMorelos",
+        "tweets": 27,
+        "poder": "otros",
+        "porcentaje": "7.2"
+      },
+      {
+        "nombre": "@LaMultimedios",
+        "tweets": 26,
+        "poder": "otros",
+        "porcentaje": "6.9"
+      },
+      {
+        "nombre": "@AztecaMorelos",
+        "tweets": 19,
+        "poder": "judicial",
+        "porcentaje": "5.1"
+      },
+      {
+        "nombre": "@circulo_depoder",
+        "tweets": 18,
+        "poder": "otros",
+        "porcentaje": "4.8"
+      },
+      {
+        "nombre": "@SolDeCuernavaca",
+        "tweets": 16,
+        "poder": "otros",
+        "porcentaje": "4.3"
+      }
+    ],
+    "horasMasActivas": [
+      {
+        "hora": "13:00",
+        "tweets": 55
+      },
+      {
+        "hora": "12:00",
+        "tweets": 42
+      },
+      {
+        "hora": "15:00",
+        "tweets": 41
+      }
+    ],
+    "palabrasClaveTop": [
+      {
+        "palabra": "Margarita González Saravia",
+        "count": 27
+      },
+      {
+        "palabra": "Congreso de Morelos",
+        "count": 23
+      },
+      {
+        "palabra": "Congreso del Estado",
+        "count": 21
+      },
+      {
+        "palabra": "@MorelosCongreso",
+        "count": 17
+      },
+      {
+        "palabra": "Alejandra Pani Barragán",
+        "count": 16
+      }
+    ]
+  },
+  "metricas": {
+    "tendencias": {
+      "tendencia7Dias": "Estable",
+      "palabrasClavePopulares": []
+    }
+  },
+  "alertas": {
+    "total": 6,
+    "porNivel": {
+      "URGENTE": 5,
+      "ALTA": 1,
+      "MEDIA": 0,
+      "BAJA": 0
+    },
+    "porMedio": {
+      "Desconocido": 6
+    },
+    "palabrasClaveMasDetectadas": {
+      "incendio": 1,
+      "accidente": 2,
+      "alerta": 2,
+      "importante": 1
+    }
+  },
+  "configuracion": {
+    "monitorActivo": true,
+    "palabrasClaveActivas": 23
+  }
+}

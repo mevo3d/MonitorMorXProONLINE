@@ -54,6 +54,8 @@ const TWITTER_PRO_URL = 'https://pro.x.com/i/decks/1853883906551898346';
 const KEYWORDS_FILE = 'keywords.json';
 const STORAGE_DIR = path.join(__dirname, 'storage');
 const STORAGE_STATE_PATH = path.join(STORAGE_DIR, 'xpro-session.json');
+const X_USERNAME = process.env.X_USERNAME;
+const X_PASSWORD = process.env.X_PASSWORD;
 
 // Sistema de recuperación ante errores
 class ErrorRecoverySystem {
@@ -295,11 +297,11 @@ async function iniciarMonitor() {
     console.log('🚀 Iniciando navegador con contexto persistente...');
 
     context = await chromium.launchPersistentContext(USER_DATA_DIR, {
-      headless: false,
+      headless: false, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
       viewport: { width: 1280, height: 800 },
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       acceptDownloads: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+
     });
 
     browser = context.browser();
@@ -317,9 +319,21 @@ async function iniciarMonitor() {
     // Verificación de Login
     const necesitaLogin = await verificarNecesitaLogin(page);
     if (necesitaLogin) {
-      console.log('🔐 Se requiere inicio de sesión manual (5 min timeout)');
-      const loginExitoso = await esperarInicioSesion(page);
-      if (loginExitoso) await guardarSesionXPro();
+      console.log('🔐 Se requiere inicio de sesión...');
+      if (X_USERNAME && X_PASSWORD) {
+        console.log('🤖 Intentando login automático con credenciales...');
+        const loginExitoso = await loginAutomatico(page);
+        if (loginExitoso) {
+          console.log('✅ Login automático exitoso');
+          await guardarSesionXPro();
+        } else {
+          throw new Error('Login automático falló. Verificar credenciales.');
+        }
+      } else {
+        console.log('⚠️ No hay credenciales en .env (X_USERNAME/X_PASSWORD). Esperando login manual...');
+        const loginExitoso = await esperarInicioSesion(page);
+        if (loginExitoso) await guardarSesionXPro();
+      }
     } else {
       console.log('🔓 Sesión activa detectada');
       await guardarSesionXPro();
@@ -458,7 +472,11 @@ async function verificarNecesitaLogin(page) {
     ]);
     if (sessionIndicators.some(i => i)) return false;
 
-    return false; // Asumir sesión activa si no hay indicadores claros de login
+    // Si veo el botón de Log in, definitivamente necesito login
+    const landingLogin = await page.$('text="Log in"');
+    if (landingLogin) return true;
+
+    return true; // Por seguridad, si no veo indicadores de sesión, asumo que necesito login
   } catch { return true; }
 }
 
@@ -471,6 +489,97 @@ async function esperarInicioSesion(page) {
     await page.waitForTimeout(2000);
   }
   return false;
+}
+
+async function loginAutomatico(page) {
+  try {
+    // Paso 1: Navegar al login de X
+    console.log('  📝 Navegando a página de login...');
+    await page.goto('https://x.com/i/flow/login', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForTimeout(3000);
+
+    // Paso 2: Ingresar username
+    console.log('  👤 Ingresando usuario...');
+    let usernameInput = await page.$('input[autocomplete="username"]');
+    if (!usernameInput) usernameInput = await page.$('input[name="text"]');
+    if (!usernameInput) usernameInput = await page.$('input[type="text"]');
+    if (!usernameInput) {
+      console.error('  ❌ No se encontró el campo de usuario');
+      await page.screenshot({ path: path.join(__dirname, 'debug_no_username_field.png') });
+      return false;
+    }
+    await usernameInput.click();
+    await page.waitForTimeout(300);
+    await usernameInput.fill(X_USERNAME);
+    await page.waitForTimeout(500);
+    console.log('  ✅ Usuario ingresado');
+
+    // Paso 3: Click en "Siguiente"
+    const nextButton = await page.$('button:has-text("Next"), button:has-text("Siguiente")');
+    if (nextButton) {
+      await nextButton.click();
+    } else {
+      // Fallback: enter key
+      await usernameInput.press('Enter');
+    }
+    await page.waitForTimeout(3000);
+    console.log('  ✅ Clic en Siguiente');
+    await page.screenshot({ path: path.join(__dirname, 'debug_after_next.png') });
+
+    // Paso 3.5: Manejar posible verificación de identidad ("Enter your phone number or username")
+    const verificationInput = await page.$('input[data-testid="ocfEnterTextTextInput"]');
+    if (verificationInput) {
+      console.log('  🔒 Verificación adicional detectada, ingresando usuario...');
+      await verificationInput.fill(X_USERNAME);
+      await page.waitForTimeout(500);
+      const verifyNextBtns = await page.$$('button[data-testid="ocfEnterTextNextButton"]');
+      if (verifyNextBtns.length > 0) await verifyNextBtns[0].click();
+      await page.waitForTimeout(2000);
+    }
+
+    // Paso 4: Ingresar contraseña
+    console.log('  🔑 Ingresando contraseña...');
+    const passwordInput = await page.waitForSelector('input[type="password"]', { timeout: 15000 });
+    await passwordInput.fill(X_PASSWORD);
+    await page.waitForTimeout(500);
+
+    // Paso 5: Click en "Log in"
+    const loginButton = await page.$('button[data-testid="LoginForm_Login_Button"]');
+    if (loginButton) {
+      await loginButton.click();
+    } else {
+      // Fallback: buscar botón por texto
+      const allButtons = await page.$$('button[role="button"]');
+      for (const btn of allButtons) {
+        const text = await btn.innerText().catch(() => '');
+        if (text.includes('Log in') || text.includes('Iniciar sesión')) {
+          await btn.click();
+          break;
+        }
+      }
+    }
+    console.log('  ⏳ Esperando redirección post-login...');
+    await page.waitForTimeout(5000);
+
+    // Paso 6: Navegar al deck de X Pro
+    await page.goto(TWITTER_PRO_URL, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForTimeout(5000);
+
+    // Paso 7: Verificar éxito
+    const loggedIn = !(await verificarNecesitaLogin(page));
+    if (loggedIn) {
+      console.log('  🎉 Login completado exitosamente');
+      return true;
+    } else {
+      console.error('  ❌ Login pareció completarse pero la sesión no está activa');
+      await page.screenshot({ path: path.join(__dirname, 'debug_login_failed.png') });
+      return false;
+    }
+  } catch (error) {
+    console.error('  ❌ Error durante login automático:', error.message);
+    await page.screenshot({ path: path.join(__dirname, 'debug_login_error.png') }).catch(() => { });
+    return false;
+  }
 }
 
 async function guardarSesionXPro() {
@@ -832,7 +941,14 @@ function escapeMarkdown(text) {
 
 async function verificarNuevosTweets(page, keywords, tweetsEnviados, count, bot) {
   try {
+    console.log('🔍 Verificando nuevos tweets...');
     const tweets = await page.$$('[data-testid="tweet"]');
+    console.log(`✨ Encontrados ${tweets.length} elementos de tweet en el DOM`);
+
+    if (tweets.length === 0) {
+      console.log("📸 No se encontraron tweets, tomando foto de depuración...");
+      await page.screenshot({ path: '/root/MonitorMorXPro/debug_no_tweets.png', fullPage: true });
+    }
     const candidates = [];
 
     // 1. Extracción Masiva

@@ -1,3 +1,3 @@
-2026/02/17-12:59:57.859 1804c Reusing MANIFEST C:\Users\BALERION\proyectos-automatizacion\Monitor-LegislativoMor\browser-data\Default\Sync Data\LevelDB/MANIFEST-000001
-2026/02/17-12:59:57.861 1804c Recovering log #3
-2026/02/17-12:59:57.862 1804c Reusing old log C:\Users\BALERION\proyectos-automatizacion\Monitor-LegislativoMor\browser-data\Default\Sync Data\LevelDB/000003.log 
+2026/02/18-14:22:04.541 19005 Reusing MANIFEST /root/MonitorMorXPro/browser-data/Default/Sync Data/LevelDB/MANIFEST-000001
+2026/02/18-14:22:04.550 19005 Recovering log #3
+2026/02/18-14:22:04.550 19005 Reusing old log /root/MonitorMorXPro/browser-data/Default/Sync Data/LevelDB/000003.log 
