@@ -12,7 +12,26 @@ import 'dayjs/locale/es';
 dayjs.locale('es');
 
 function App() {
+    const [activeTab, setActiveTab] = useState('dashboard');
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [tweets, setTweets] = useState([]);
+    const [feedLoading, setFeedLoading] = useState(false);
+    const [filterMode, setFilterMode] = useState(null);
+    const [keywords, setKeywords] = useState({});
+    const [totalKeywords, setTotalKeywords] = useState(0);
+    const [editingCategory, setEditingCategory] = useState(null);
+    const [tempKeywords, setTempKeywords] = useState('');
+    const [apiKey, setApiKey] = useState('');
+    const [logs, setLogs] = useState([]);
+    const [chatMessages, setChatMessages] = useState([]);
+    const [userPrompt, setUserPrompt] = useState('');
     const [userStats, setUserStats] = useState(null);
+    const [aiLoading, setAiLoading] = useState(false);
+    const logsRef = useRef(null);
+    const [configTab, setConfigTab] = useState('twitter');
+    const [fbPages, setFbPages] = useState([]);
+    const [fbCookies, setFbCookies] = useState([]);
 
     useEffect(() => {
         fetchStats();
