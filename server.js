@@ -347,6 +347,70 @@ app.post('/api/config/keywords', (req, res) => {
     }
 });
 
+// ====== ENDPOINT: Configuración (Telegram) ======
+app.get('/api/config/telegram', (req, res) => {
+    try {
+        const envPath = path.join(__dirname, '.env');
+        if (fs.existsSync(envPath)) {
+            const rawEnv = fs.readFileSync(envPath, 'utf8');
+            const lines = rawEnv.split('\n');
+            const telegramConfig = {};
+
+            lines.forEach(line => {
+                if (line.trim().startsWith('TELEGRAM_')) {
+                    const parts = line.split('=');
+                    if (parts.length >= 2) {
+                        const key = parts[0].trim();
+                        const value = parts.slice(1).join('=').trim();
+                        telegramConfig[key] = value;
+                    }
+                }
+            });
+
+            res.json({ success: true, config: telegramConfig });
+        } else {
+            res.json({ success: true, config: {} });
+        }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ====== ENDPOINT: Guardar Configuración (Telegram) ======
+app.post('/api/config/telegram', (req, res) => {
+    try {
+        const { config } = req.body;
+        if (!config) return res.status(400).json({ error: 'Data was missing.' });
+
+        const envPath = path.join(__dirname, '.env');
+        let lines = [];
+        if (fs.existsSync(envPath)) {
+            lines = fs.readFileSync(envPath, 'utf8').split('\n');
+        }
+
+        // Modifica solo las lineas presentes o añade si no existen
+        for (const [key, value] of Object.entries(config)) {
+            if (!key.startsWith('TELEGRAM_')) continue;
+
+            let found = false;
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].trim().startsWith(`${key}=`)) {
+                    lines[i] = `${key}=${value}`;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) lines.push(`${key}=${value}`);
+        }
+
+        fs.writeFileSync(envPath, lines.join('\n'));
+        console.log(`📝 Telegram Config updated.`);
+        res.json({ success: true, message: 'Configuración de Telegram guardada' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // ====== ENDPOINT: Guardar API Keys ======
 app.post('/api/config/save', (req, res) => {
     try {

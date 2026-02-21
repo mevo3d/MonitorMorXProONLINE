@@ -4,7 +4,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 import {
-    LayoutDashboard, Search, Bot, Settings, RefreshCw, Radio, Twitter, Globe, Clock, MessageSquare, ChevronRight, Zap, ExternalLink, Play, Edit, Plus, X, Save, ArrowLeft, Download, Menu
+    LayoutDashboard, Search, Bot, Settings, RefreshCw, Radio, Twitter, Globe, Clock, MessageSquare, ChevronRight, Zap, ExternalLink, Play, Edit, Plus, X, Save, ArrowLeft, Download, Menu, Send
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -33,6 +33,7 @@ function App() {
     const [fbPages, setFbPages] = useState([]);
     const [fbCookies, setFbCookies] = useState([]);
     const [newCookieInput, setNewCookieInput] = useState('');
+    const [telegramConfig, setTelegramConfig] = useState({});
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
@@ -81,9 +82,19 @@ function App() {
         }
     };
 
+    const fetchTelegramSettings = async () => {
+        try {
+            const res = await axios.get('/api/config/telegram');
+            setTelegramConfig(res.data.config || {});
+        } catch (e) {
+            console.error("Error fetching Telegram settings:", e);
+        }
+    };
+
     useEffect(() => {
         if (activeTab === 'config') {
             fetchFacebookSettings();
+            fetchTelegramSettings();
         }
     }, [activeTab]);
 
@@ -167,6 +178,15 @@ function App() {
             alert('¡Configuración de Meta guardada exitosamente!');
         } catch (e) {
             alert('Error guardando Meta: ' + e.message);
+        }
+    };
+
+    const saveTelegramSettings = async () => {
+        try {
+            await axios.post('/api/config/telegram', { config: telegramConfig });
+            alert('¡Configuración de Telegram guardada exitosamente!');
+        } catch (e) {
+            alert('Error guardando Telegram: ' + e.message);
         }
     };
 
@@ -576,9 +596,15 @@ function App() {
                     </button>
                     <button
                         onClick={() => setConfigTab('facebook')}
-                        className={`px-4 py-3 font-medium text-sm transition-colors relative ${configTab === 'facebook' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px' : 'text-slate-500 hover:text-slate-700 bg-slate-50 border-b border-slate-200'}`}
+                        className={`px-4 py-3 font-medium text-sm transition-colors relative ${configTab === 'facebook' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px' : 'text-slate-500 hover:text-slate-700 bg-slate-50'}`}
                     >
                         Monitoreo Meta (Facebook)
+                    </button>
+                    <button
+                        onClick={() => setConfigTab('telegram')}
+                        className={`px-4 py-3 font-medium text-sm transition-colors relative ${configTab === 'telegram' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px' : 'text-slate-500 hover:text-slate-700 bg-slate-50 border-b border-slate-200'}`}
+                    >
+                        Canales de Telegram
                     </button>
                 </div>
 
@@ -785,6 +811,79 @@ function App() {
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
                             >
                                 <Save size={20} /> Guardar Configuración de Meta
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {configTab === 'telegram' && (
+                    <div className="space-y-6 animate-in fade-in duration-300">
+                        <div className="bg-sky-50/50 p-6 rounded-2xl border border-sky-100">
+                            <h3 className="font-semibold text-sky-900 mb-2 flex items-center gap-2 text-lg">
+                                <Send size={20} className="text-sky-600" />
+                                Canales de Envío (Destinos de Telegram)
+                            </h3>
+                            <p className="text-sm text-sky-700 mb-6">Cada categoría (Poder Legislativo, Ejecutivo, etc.) se reporta automáticamente al bot y canal que asignes aquí. Las alertas prioritarias siempre cruzan al default también.</p>
+
+                            <div className="space-y-4">
+                                {['DEFAULT', 'LEGISLATIVO', 'EJECUTIVO', 'JUDICIAL', 'MORELOS', 'CUAUTLA'].map(channel => {
+                                    const hasToken = !!telegramConfig[`TELEGRAM_TOKEN_${channel}`];
+                                    const hasChat = !!telegramConfig[`TELEGRAM_CHAT_ID_${channel}`];
+                                    const isConnected = hasToken && hasChat;
+
+                                    return (
+                                        <div key={channel} className="bg-white p-5 rounded-xl border border-sky-200 shadow-sm relative overflow-hidden transition-all hover:shadow-md">
+                                            <div className={`absolute top-0 left-0 w-1.5 h-full ${isConnected ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+
+                                            <h4 className="font-bold text-sky-800 mb-4 ml-2 flex items-center justify-between">
+                                                <span>
+                                                    Canal: {channel === 'DEFAULT' ? 'Global Principal (Por Defecto)' : `Poder ${channel}`}
+                                                </span>
+                                                <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${isConnected ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                    {isConnected ? '✓ Configurado' : '⚠️ Faltan Datos'}
+                                                </span>
+                                            </h4>
+
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 ml-2">
+                                                <div>
+                                                    <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Bot Token (HTTP API)</label>
+                                                    <div className="relative">
+                                                        <Bot size={14} className="absolute left-3 top-3 text-slate-400" />
+                                                        <input
+                                                            type="text"
+                                                            value={telegramConfig[`TELEGRAM_TOKEN_${channel}`] || ''}
+                                                            onChange={(e) => setTelegramConfig({ ...telegramConfig, [`TELEGRAM_TOKEN_${channel}`]: e.target.value })}
+                                                            placeholder="Ej. 8012798475:AAH..."
+                                                            className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono text-slate-600 transition-all"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">ID de Chat o Grupo (Destino)</label>
+                                                    <div className="relative">
+                                                        <MessageSquare size={14} className="absolute left-3 top-3 text-slate-400" />
+                                                        <input
+                                                            type="text"
+                                                            value={telegramConfig[`TELEGRAM_CHAT_ID_${channel}`] || ''}
+                                                            onChange={(e) => setTelegramConfig({ ...telegramConfig, [`TELEGRAM_CHAT_ID_${channel}`]: e.target.value })}
+                                                            placeholder="Ej. -4757620479 o @NombreCanal"
+                                                            className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono text-slate-600 transition-all"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end pt-6 border-t border-slate-200">
+                            <button
+                                onClick={saveTelegramSettings}
+                                className="bg-sky-600 hover:bg-sky-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-sky-500/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
+                            >
+                                <Save size={20} /> Guardar Cuentas de Telegram
                             </button>
                         </div>
                     </div>
