@@ -393,14 +393,15 @@ app.post('/api/config/telegram', (req, res) => {
             if (!key.startsWith('TELEGRAM_')) continue;
 
             let found = false;
+            let valTrimmed = (value || '').trim();
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].trim().startsWith(`${key}=`)) {
-                    lines[i] = `${key}=${value}`;
+                    lines[i] = `${key}=${valTrimmed}`;
                     found = true;
                     break;
                 }
             }
-            if (!found) lines.push(`${key}=${value}`);
+            if (!found) lines.push(`${key}=${valTrimmed}`);
         }
 
         fs.writeFileSync(envPath, lines.join('\n'));
@@ -414,7 +415,9 @@ app.post('/api/config/telegram', (req, res) => {
 // ====== ENDPOINT: Probar Configuración (Telegram) ======
 app.post('/api/config/telegram/test', async (req, res) => {
     try {
-        const { token, chatId, channel } = req.body;
+        const token = (req.body.token || '').trim();
+        const chatId = (req.body.chatId || '').trim();
+        const { channel } = req.body;
         if (!token || !chatId) return res.status(400).json({ error: 'Token y Chat ID son requeridos para la prueba.' });
 
         const url = `https://api.telegram.org/bot${token}/sendMessage`;

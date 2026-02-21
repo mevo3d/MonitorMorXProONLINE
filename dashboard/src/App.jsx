@@ -193,8 +193,8 @@ function App() {
     };
 
     const testTelegramChannel = async (channel) => {
-        const token = telegramConfig[`TELEGRAM_TOKEN_${channel}`];
-        const chatId = telegramConfig[`TELEGRAM_CHAT_ID_${channel}`];
+        const token = (telegramConfig[`TELEGRAM_TOKEN_${channel}`] || '').trim();
+        const chatId = (telegramConfig[`TELEGRAM_CHAT_ID_${channel}`] || '').trim();
 
         if (!token || !chatId) {
             alert('Por favor ingresa Token y Chat ID antes de probar.');
