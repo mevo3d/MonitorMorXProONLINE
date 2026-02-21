@@ -32,6 +32,7 @@ function App() {
     const [configTab, setConfigTab] = useState('twitter');
     const [fbPages, setFbPages] = useState([]);
     const [fbCookies, setFbCookies] = useState([]);
+    const [newCookieInput, setNewCookieInput] = useState('');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
@@ -726,35 +727,55 @@ function App() {
                             <p className="text-sm text-slate-500 mb-6">Inserta las cookies exportadas de navegadores con las 3 o 4 cuentas de respaldo. Cada línea se rotará para navegar en Facebook como humano (JSON Array).</p>
 
                             <div className="space-y-4">
-                                {fbCookies.map((cookieStr, index) => (
-                                    <div key={index} className="flex gap-3 bg-white p-3 rounded-xl border border-slate-300 shadow-sm items-start">
-                                        <div className="pt-2 font-bold text-slate-400">#{index + 1}</div>
+                                {/* Saved Cookie Cards */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {fbCookies.map((cookieStr, index) => (
+                                        <div key={index} className="bg-white p-4 rounded-xl border-l-4 border-amber-500 shadow-sm flex flex-col justify-between items-start group transition-all hover:shadow-md">
+                                            <div className="flex justify-between w-full mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-sm">
+                                                        #{index + 1}
+                                                    </div>
+                                                    <span className="font-bold text-slate-700">Cuenta Lista</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => setFbCookies(fbCookies.filter((_, i) => i !== index))}
+                                                    className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                                                    title="Eliminar Cuenta"
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-slate-400 font-mono mt-2 truncate w-full px-2 py-1 bg-slate-50 rounded">
+                                                ✅ JSON Cargado ({cookieStr.length > 50 ? 'OK' : 'Advertencia: Incompleto'})
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Add New Form */}
+                                <div className="mt-6 pt-6 border-t border-slate-200">
+                                    <h4 className="font-semibold text-slate-700 mb-3 text-sm">Agregar Nueva Cuenta (Cookie JSON)</h4>
+                                    <div className="bg-white p-4 rounded-xl border border-slate-300 shadow-sm flex flex-col gap-3 items-end">
                                         <textarea
-                                            value={cookieStr}
-                                            onChange={(e) => {
-                                                const newCookies = [...fbCookies];
-                                                newCookies[index] = e.target.value;
-                                                setFbCookies(newCookies);
-                                            }}
-                                            placeholder="Pega el contenido JSON de la extensión export cookies aquí..."
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500 text-xs text-slate-600 font-mono resize-y min-h-[80px] p-3 outline-none"
-                                            rows={3}
+                                            value={newCookieInput}
+                                            onChange={(e) => setNewCookieInput(e.target.value)}
+                                            placeholder='Pega aquí todo el contenido JSON de la extensión (ej. [ { "domain": ".facebook.com"... } ])...'
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500 text-xs text-slate-600 font-mono resize-y min-h-[100px] p-3 outline-none"
                                         />
                                         <button
-                                            onClick={() => setFbCookies(fbCookies.filter((_, i) => i !== index))}
-                                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                            onClick={() => {
+                                                if (newCookieInput.trim()) {
+                                                    setFbCookies([...fbCookies, newCookieInput.trim()]);
+                                                    setNewCookieInput('');
+                                                }
+                                            }}
+                                            className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-6 py-2 rounded-xl text-sm font-bold transition-colors border border-amber-300 flex items-center gap-2 cursor-pointer"
                                         >
-                                            <X size={18} />
+                                            <Save size={16} /> Guardar Tarjeta
                                         </button>
                                     </div>
-                                ))}
-
-                                <button
-                                    onClick={() => setFbCookies([...fbCookies, ''])}
-                                    className="mt-4 flex items-center justify-center gap-2 px-6 py-3 text-sm text-amber-700 hover:bg-amber-100/50 rounded-xl font-medium transition-colors border-2 border-dashed border-amber-300 cursor-pointer w-full"
-                                >
-                                    <Plus size={18} /> Agregar nueva cuenta de respaldo (JSON)
-                                </button>
+                                </div>
                             </div>
                         </div>
 
