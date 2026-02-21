@@ -471,8 +471,13 @@ function App() {
                                     onClick={() => fetchTweets({ type: 'handle', value: medio.handle })}
                                     className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl hover:bg-blue-50 hover:border-blue-200 border border-transparent transition-all group cursor-pointer"
                                 >
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-blue-600 font-bold text-xs flex-shrink-0 group-hover:scale-110 transition-transform">
-                                        {idx + 1}
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-blue-600 font-bold text-xs flex-shrink-0 group-hover:scale-110 transition-transform overflow-hidden relative">
+                                        {medio.profileImage ? (
+                                            <img src={medio.profileImage} alt={medio.nombre} className="w-full h-full object-cover rounded-full" />
+                                        ) : (
+                                            (medio.handle || '?').replace('@', '').substring(0, 2).toUpperCase()
+                                        )}
+                                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center text-[8px] font-bold text-slate-600 shadow-sm border border-slate-200">{idx + 1}</span>
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="font-bold text-slate-800 text-sm truncate group-hover:text-blue-700">{medio.nombre}</p>
@@ -662,8 +667,12 @@ function App() {
                                 <div className="flex-1 p-5 flex flex-col">
                                     <div className="flex justify-between items-start mb-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-sm border border-slate-200 shadow-sm">
-                                                {(tweet.handle || '?').replace('@', '').substring(0, 2).toUpperCase()}
+                                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-sm border border-slate-200 shadow-sm overflow-hidden">
+                                                {tweet.profileImage ? (
+                                                    <img src={tweet.profileImage} alt={tweet.handle} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    (tweet.handle || '?').replace('@', '').substring(0, 2).toUpperCase()
+                                                )}
                                             </div>
                                             <div>
                                                 <h4 className="font-bold text-slate-800 text-sm hover:text-blue-600 cursor-pointer" onClick={() => fetchTweets({ type: 'handle', value: tweet.handle })}>

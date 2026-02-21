@@ -117,12 +117,14 @@ app.get('/api/stats', (req, res) => {
         // 1. Top Medios (por handle) - contar tweets por usuario
         const handleCount = {};
         const handleNames = {};
+        const handleAvatars = {};
         for (const t of tweets) {
-            if (!t.handle) continue; // Ignorar tweets sin handle
+            if (!t.handle) continue;
             const h = t.handle.replace('@', '');
             if (!h) continue;
             handleCount[h] = (handleCount[h] || 0) + 1;
             if (t.name) handleNames[h] = t.name;
+            if (t.profileImage && !handleAvatars[h]) handleAvatars[h] = t.profileImage;
         }
 
         const topMedios = Object.entries(handleCount)
@@ -131,7 +133,8 @@ app.get('/api/stats', (req, res) => {
             .map(([handle, count]) => ({
                 handle: '@' + handle,
                 nombre: handleNames[handle] || handle,
-                tweets: count
+                tweets: count,
+                profileImage: handleAvatars[handle] || null
             }));
 
         // 2. Distribución por Poder (usando keywords reales)
@@ -245,12 +248,14 @@ app.get('/api/stats/medios', (req, res) => {
         // Top Medios
         const handleCount = {};
         const handleNames = {};
+        const handleAvatars = {};
         for (const t of tweets) {
             if (!t.handle) continue;
             const h = t.handle.replace('@', '');
             if (!h) continue;
             handleCount[h] = (handleCount[h] || 0) + 1;
             if (t.name) handleNames[h] = t.name;
+            if (t.profileImage && !handleAvatars[h]) handleAvatars[h] = t.profileImage;
         }
         const topMedios = Object.entries(handleCount)
             .sort((a, b) => b[1] - a[1])
@@ -258,7 +263,8 @@ app.get('/api/stats/medios', (req, res) => {
             .map(([handle, count]) => ({
                 handle: '@' + handle,
                 nombre: handleNames[handle] || handle,
-                tweets: count
+                tweets: count,
+                profileImage: handleAvatars[handle] || null
             }));
 
         // Distribución por categoría de medios

@@ -264,6 +264,10 @@ async function buscarTweetsBrowser() {
                     const timeEl = article.querySelector('time');
                     const linkEl = article.querySelector('a[href*="/status/"]');
 
+                    // Profile avatar image
+                    const avatarImg = article.querySelector('div[data-testid="Tweet-User-Avatar"] img');
+                    const profileImage = avatarImg ? avatarImg.src : null;
+
                     // Imágenes y Videos del tweet (no card)
                     const imgEls = article.querySelectorAll('div[data-testid="tweetPhoto"] img');
                     const isVideo = article.querySelector('div[data-testid="videoComponent"]') !== null ||
@@ -316,7 +320,7 @@ async function buscarTweetsBrowser() {
 
                         data.push({
                             id, name, handle, text, timestamp, url, media, isVideo,
-                            cardUrl, cardImage, cardTitle
+                            cardUrl, cardImage, cardTitle, profileImage
                         });
                     }
                 } catch (err) { }
@@ -341,7 +345,7 @@ async function procesarTweets(tweets) {
     let count = 0;
     for (const tweet of tweets) {
         try {
-            const { id, handle, text, name, timestamp, url, media, isVideo, cardUrl, cardImage, cardTitle } = tweet;
+            const { id, handle, text, name, timestamp, url, media, isVideo, cardUrl, cardImage, cardTitle, profileImage } = tweet;
 
             // Filtro de duplicados
             if (tweetsEnviados.has(id)) continue;
@@ -520,7 +524,8 @@ async function procesarTweets(tweets) {
                     cardUrl: cardUrl || null,
                     cardTitle: cardTitle || null,
                     cardImage: cardImage || null,
-                    source: tweet.source || 'twitter'
+                    source: tweet.source || 'twitter',
+                    profileImage: profileImage || null
                 });
                 if (history.length > 2000) history.shift();
                 fs.writeFileSync(SEEN_FILE, JSON.stringify(history, null, 2));
