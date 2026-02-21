@@ -82,7 +82,7 @@ if (TELEGRAM_TOKEN && TELEGRAM_CHAT_ID) {
     bot = new TelegramBot(TELEGRAM_TOKEN, { polling: false }); // Polling false porque usamos un loop propio
     console.log('📱 Bot Telegram configurado (Principal)');
 
-    const canales = ['LEGISLATIVO', 'EJECUTIVO', 'JUDICIAL'];
+    const canales = ['DEFAULT', 'LEGISLATIVO', 'EJECUTIVO', 'JUDICIAL', 'MORELOS', 'CUAUTLA'];
     canales.forEach(canal => {
         const token = process.env[`TELEGRAM_TOKEN_${canal}`];
         const chatId = process.env[`TELEGRAM_CHAT_ID_${canal}`];
@@ -390,6 +390,22 @@ async function procesarTweets(tweets) {
                     targetBot = botsEspecializados['judicial'].bot;
                     targetChatId = botsEspecializados['judicial'].chatId;
                 }
+            } else if (categoriasDelTweet.includes('cuautla')) {
+                if (botsEspecializados['cuautla']) {
+                    targetBot = botsEspecializados['cuautla'].bot;
+                    targetChatId = botsEspecializados['cuautla'].chatId;
+                }
+            } else if (categoriasDelTweet.length > 0) { // Fallback para cualquier otra categoria (morelos/general)
+                if (botsEspecializados['morelos']) {
+                    targetBot = botsEspecializados['morelos'].bot;
+                    targetChatId = botsEspecializados['morelos'].chatId;
+                }
+            }
+
+            // Si a pesar de todo no tiene asginación y está en default, forzamos target fallback
+            if (!targetBot && botsEspecializados['default']) {
+                targetBot = botsEspecializados['default'].bot;
+                targetChatId = botsEspecializados['default'].chatId;
             }
 
             if (targetBot) {
