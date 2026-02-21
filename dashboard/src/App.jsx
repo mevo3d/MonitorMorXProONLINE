@@ -10,6 +10,38 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
 dayjs.locale('es');
+// Helper function to safely render text with clickable URLs
+const renderTextWithLinks = (text) => {
+    if (!text) return null;
+
+    // Fix broken URLs where 'https://' got separated from the domain by a newline or space during scraping
+    const cleanedText = text.replace(/(https?:\/\/)\s+/g, '$1');
+
+    // Match http/https URLs reliably until the next whitespace
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = cleanedText.split(urlRegex);
+
+    return parts.map((part, i) => {
+        if (part.match(urlRegex)) {
+            // Check if there is trailing punctuation to keep outside the link
+            let cleanUrl = part;
+            let punctuation = '';
+            if (/[.,;)$]/.test(part.slice(-1))) {
+                cleanUrl = part.slice(0, -1);
+                punctuation = part.slice(-1);
+            }
+            return (
+                <span key={i}>
+                    <a href={cleanUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 font-bold hover:text-blue-700 hover:underline break-all" onClick={(e) => e.stopPropagation()}>
+                        {cleanUrl}
+                    </a>
+                    {punctuation}
+                </span>
+            );
+        }
+        return <span key={i}>{part}</span>;
+    });
+};
 
 function App() {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -554,15 +586,9 @@ function App() {
                                         </span>
                                     </div>
 
-                                    <p
-                                        className="text-sm text-slate-700 leading-relaxed whitespace-pre-line mb-4 flex-1"
-                                        dangerouslySetInnerHTML={{
-                                            __html: (tweet.text || '').replace(
-                                                /(https?:\/\/[^\s]+)/g,
-                                                '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline break-all">$1</a>'
-                                            )
-                                        }}
-                                    />
+                                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line mb-4 flex-1">
+                                        {renderTextWithLinks(tweet.text)}
+                                    </p>
 
                                     {/* Link Preview Card */}
                                     {tweet.cardUrl && (
