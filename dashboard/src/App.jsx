@@ -34,6 +34,7 @@ function App() {
     const [fbCookies, setFbCookies] = useState([]);
     const [newCookieInput, setNewCookieInput] = useState('');
     const [telegramConfig, setTelegramConfig] = useState({});
+    const [telegramTestStatus, setTelegramTestStatus] = useState({});
     const [feedTab, setFeedTab] = useState('twitter');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -188,6 +189,33 @@ function App() {
             alert('¡Configuración de Telegram guardada exitosamente!');
         } catch (e) {
             alert('Error guardando Telegram: ' + e.message);
+        }
+    };
+
+    const testTelegramChannel = async (channel) => {
+        const token = telegramConfig[`TELEGRAM_TOKEN_${channel}`];
+        const chatId = telegramConfig[`TELEGRAM_CHAT_ID_${channel}`];
+
+        if (!token || !chatId) {
+            alert('Por favor ingresa Token y Chat ID antes de probar.');
+            return;
+        }
+
+        setTelegramTestStatus(prev => ({ ...prev, [channel]: 'testing' }));
+
+        try {
+            // Guardamos primero en backend
+            await axios.post('/api/config/telegram', { config: telegramConfig });
+
+            // Probamos conexion
+            const res = await axios.post('/api/config/telegram/test', { token, chatId, channel });
+            if (res.data.success) {
+                setTelegramTestStatus(prev => ({ ...prev, [channel]: 'success' }));
+            }
+        } catch (e) {
+            const errorMsg = e.response?.data?.error || e.message;
+            alert('Error probando conexión a Telegram: ' + errorMsg);
+            setTelegramTestStatus(prev => ({ ...prev, [channel]: 'error' }));
         }
     };
 
@@ -855,8 +883,8 @@ function App() {
                                                 <span>
                                                     Canal: {channel === 'DEFAULT' ? 'Global Principal (Por Defecto)' : `Poder ${channel}`}
                                                 </span>
-                                                <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${isConnected ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                                                    {isConnected ? '✓ Configurado' : '⚠️ Faltan Datos'}
+                                                <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider flex items-center gap-1 ${telegramTestStatus[channel] === 'success' ? 'bg-green-100 text-green-700 border border-green-200 shadow-sm' : (isConnected ? 'bg-blue-50 text-blue-600' : 'bg-amber-100 text-amber-700')}`}>
+                                                    {telegramTestStatus[channel] === 'success' ? <><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Verificado Correctamente</> : (isConnected ? 'Guardado (Sin Probar)' : '⚠️ Faltan Datos')}
                                                 </span>
                                             </h4>
 
@@ -868,23 +896,47 @@ function App() {
                                                         <input
                                                             type="text"
                                                             value={telegramConfig[`TELEGRAM_TOKEN_${channel}`] || ''}
-                                                            onChange={(e) => setTelegramConfig({ ...telegramConfig, [`TELEGRAM_TOKEN_${channel}`]: e.target.value })}
+                                                            onChange={(e) => {
+                                                                setTelegramConfig({ ...telegramConfig, [`TELEGRAM_TOKEN_${channel}`]: e.target.value });
+                                                                setTelegramTestStatus(prev => ({ ...prev, [channel]: null }));
+                                                            }}
                                                             placeholder="Ej. 8012798475:AAH..."
-                                                            className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono text-slate-600 transition-all"
+                                                            className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono text-slate-600 transition-all cursor-text"
+                                                            autoComplete="off"
                                                         />
                                                     </div>
                                                 </div>
                                                 <div>
                                                     <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">ID de Chat o Grupo (Destino)</label>
-                                                    <div className="relative">
-                                                        <MessageSquare size={14} className="absolute left-3 top-3 text-slate-400" />
-                                                        <input
-                                                            type="text"
-                                                            value={telegramConfig[`TELEGRAM_CHAT_ID_${channel}`] || ''}
-                                                            onChange={(e) => setTelegramConfig({ ...telegramConfig, [`TELEGRAM_CHAT_ID_${channel}`]: e.target.value })}
-                                                            placeholder="Ej. -4757620479 o @NombreCanal"
-                                                            className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono text-slate-600 transition-all"
-                                                        />
+                                                    <div className="flex gap-2 relative">
+                                                        <div className="relative flex-1">
+                                                            <MessageSquare size={14} className="absolute left-3 top-3 text-slate-400" />
+                                                            <input
+                                                                type="text"
+                                                                value={telegramConfig[`TELEGRAM_CHAT_ID_${channel}`] || ''}
+                                                                onChange={(e) => {
+                                                                    setTelegramConfig({ ...telegramConfig, [`TELEGRAM_CHAT_ID_${channel}`]: e.target.value });
+                                                                    setTelegramTestStatus(prev => ({ ...prev, [channel]: null }));
+                                                                }}
+                                                                placeholder="Ej. -4757620479 o @Nombre"
+                                                                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono text-slate-600 transition-all cursor-text"
+                                                                autoComplete="off"
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            onClick={() => testTelegramChannel(channel)}
+                                                            className={`px-4 py-2 rounded-xl text-xs font-bold font-sans flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap min-w-[124px] justify-center ${telegramTestStatus[channel] === 'testing' ? 'bg-amber-100 text-amber-700' :
+                                                                telegramTestStatus[channel] === 'success' ? 'bg-green-100 text-green-700 border border-green-300' :
+                                                                    telegramTestStatus[channel] === 'error' ? 'bg-red-100 text-red-700 border border-red-300' :
+                                                                        'bg-sky-100 hover:bg-sky-200 text-sky-700 border border-sky-300 hover:shadow-sm'
+                                                                }`}
+                                                            disabled={telegramTestStatus[channel] === 'testing' || !isConnected}
+                                                        >
+                                                            {telegramTestStatus[channel] === 'testing' ? <><RefreshCw size={14} className="animate-spin" /> Probando...</> :
+                                                                telegramTestStatus[channel] === 'success' ? <><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-1"></div>¡Conectado!</> :
+                                                                    telegramTestStatus[channel] === 'error' ? <><X size={14} /> Error</> :
+                                                                        <><Play size={14} /> Probar y Guardar</>}
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>

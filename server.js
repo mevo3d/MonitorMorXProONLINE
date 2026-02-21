@@ -411,6 +411,40 @@ app.post('/api/config/telegram', (req, res) => {
     }
 });
 
+// ====== ENDPOINT: Probar Configuración (Telegram) ======
+app.post('/api/config/telegram/test', async (req, res) => {
+    try {
+        const { token, chatId, channel } = req.body;
+        if (!token || !chatId) return res.status(400).json({ error: 'Token y Chat ID son requeridos para la prueba.' });
+
+        const url = `https://api.telegram.org/bot${token}/sendMessage`;
+        const channelName = channel === 'DEFAULT' ? 'Global Principal' : `Poder ${channel}`;
+        const text = `✅ ¡Prueba de conexión exitosa desde *MonitorMor Pro*!\nEl canal asignado a *${channelName}* está funcionando correctamente. 🚀`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: text,
+                parse_mode: 'Markdown'
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.ok) {
+            res.json({ success: true, message: 'Mensaje de prueba enviado correctamente.' });
+        } else {
+            console.error('Error de Telegram en prueba:', data);
+            res.status(400).json({ error: `Error de API Telegram: ${data.description}` });
+        }
+    } catch (e) {
+        console.error('Error probando Telegram:', e.message);
+        res.status(500).json({ error: 'Error de red al intentar verificar: ' + e.message });
+    }
+});
+
 // ====== ENDPOINT: Guardar API Keys ======
 app.post('/api/config/save', (req, res) => {
     try {
