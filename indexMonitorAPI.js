@@ -28,6 +28,7 @@ const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const RETTIWT_API_KEY = process.env.RETTIWT_API_KEY;
 const KEYWORDS_FILE = 'keywords.json';
+const KEYWORDS_MEDIOS_FILE = path.join(__dirname, 'keywords-medios.json');
 const SEEN_FILE = path.join(__dirname, 'tweets-seen.json');
 const CHECK_INTERVAL_MS = 60000; // 60 segundos entre ciclos
 const MAX_CRASH_RETRIES = 50;
@@ -43,6 +44,8 @@ let bot = null;
 const botsEspecializados = {};
 let allKeywords = [];
 let categorias = {};
+let allMediosKeywords = [];
+let categoriasMedios = {};
 const tweetsEnviados = new Set();
 let crashCount = 0;
 let tweetsEncontradosCount = 0;
@@ -165,7 +168,24 @@ async function cargarPalabrasClave() {
         // Actualizar categorías en módulo de estadísticas
         if (estadisticas) estadisticas.actualizarCategorias(categorias);
 
-        console.log(`🔍 Listas para buscar: ${allKeywords.length} keywords`);
+        console.log(`🔍 Listas para buscar: ${allKeywords.length} keywords (poderes)`);
+
+        // Cargar keywords de medios
+        try {
+            if (fs.existsSync(KEYWORDS_MEDIOS_FILE)) {
+                const mediosData = await fs.promises.readFile(KEYWORDS_MEDIOS_FILE, 'utf8');
+                const mediosConfig = JSON.parse(mediosData);
+                categoriasMedios = mediosConfig.categorias || {};
+                allMediosKeywords = [];
+                for (const cat in categoriasMedios) {
+                    allMediosKeywords.push(...categoriasMedios[cat]);
+                }
+                console.log(`📰 Listas para buscar: ${allMediosKeywords.length} keywords (medios)`);
+            }
+        } catch (e2) {
+            console.error('Error cargando keywords medios:', e2.message);
+        }
+
         return allKeywords;
     } catch (e) {
         console.error('Error cargando keywords:', e.message);
@@ -329,7 +349,11 @@ async function procesarTweets(tweets) {
             const normalizedText = normalizeText(text);
             const foundKeyword = allKeywords.find(k => normalizedText.includes(normalizeText(k)));
 
-            if (!foundKeyword && !normalizedText.includes('morelos')) continue;
+            if (!foundKeyword && !normalizedText.includes('morelos')) {
+                // Also check medios keywords before skipping
+                const foundMediosKw = allMediosKeywords.find(k => normalizedText.includes(normalizeText(k)) || (k.startsWith('@') && (handle || '').toLowerCase().includes(k.toLowerCase().replace('@', ''))));
+                if (!foundMediosKw) continue;
+            }
 
             tweetsEnviados.add(id);
             count++;
@@ -406,6 +430,24 @@ async function procesarTweets(tweets) {
             if (!targetBot && botsEspecializados['default']) {
                 targetBot = botsEspecializados['default'].bot;
                 targetChatId = botsEspecializados['default'].chatId;
+            }
+
+            // === DUAL ROUTING: También enviar a bot de Medios si coincide con keywords de medios ===
+            const foundMediosKw = allMediosKeywords.find(k => normalizedText.includes(normalizeText(k)) || (k.startsWith('@') && (handle || '').toLowerCase().includes(k.toLowerCase().replace('@', ''))));
+            if (foundMediosKw && botsEspecializados['cuautla']) {
+                const mediosBot = botsEspecializados['cuautla'].bot;
+                const mediosChatId = botsEspecializados['cuautla'].chatId;
+                // Only send to medios bot if it's different from the target bot
+                if (mediosBot !== targetBot || mediosChatId !== targetChatId) {
+                    try {
+                        const timeAgoM = getTimeAgo(new Date(timestamp));
+                        let captionM = `📰 *${escapeMarkdown(name)}* ${escapeMarkdown(handle)}\n• ${formatTime(new Date(timestamp))} ${timeAgoM}\n\n${escapeMarkdown(text)}`;
+                        captionM += `\n\n🔗 [Ver Tweet](${url})`;
+                        await mediosBot.sendMessage(mediosChatId, captionM, { parse_mode: 'Markdown', disable_web_page_preview: false });
+                    } catch (mediosErr) {
+                        console.error('Error enviando a bot Medios:', mediosErr.message);
+                    }
+                }
             }
 
             if (targetBot) {

@@ -22,6 +22,7 @@ const KEYWORDS_FILE = path.join(__dirname, 'keywords.json');
 const SECRETS_FILE = path.join(__dirname, 'secrets.json');
 const PM2_LOG_FILE = '/root/.pm2/logs/monitor-x-v2-out.log';
 const FACEBOOK_PAGES_FILE = path.join(__dirname, 'facebook-pages.json'); // New config file para FB
+const KEYWORDS_MEDIOS_FILE = path.join(__dirname, 'keywords-medios.json');
 
 // ====== HELPERS ======
 
@@ -33,6 +34,42 @@ function loadTweets() {
 function loadKeywords() {
     if (!fs.existsSync(KEYWORDS_FILE)) return { categorias: {} };
     return JSON.parse(fs.readFileSync(KEYWORDS_FILE, 'utf8'));
+}
+
+function loadMediosKeywords() {
+    if (!fs.existsSync(KEYWORDS_MEDIOS_FILE)) return { categorias: {} };
+    return JSON.parse(fs.readFileSync(KEYWORDS_MEDIOS_FILE, 'utf8'));
+}
+
+// Clasificar un tweet por categoría de medios
+function clasificarPorMedios(tweetText, tweetHandle, keywords) {
+    const text = (tweetText || '').toLowerCase();
+    const handle = (tweetHandle || '').toLowerCase();
+    const result = { cuautla: false, zona_oriente: false, medios_locales: false, seguridad: false, politica_local: false };
+
+    const cats = keywords.categorias || {};
+    for (const [cat, palabras] of Object.entries(cats)) {
+        if (!Array.isArray(palabras)) continue;
+        for (const palabra of palabras) {
+            const p = palabra.toLowerCase();
+            // Check handle matches (for @mentions)
+            if (p.startsWith('@') && handle.includes(p.replace('@', ''))) {
+                result[cat] = true;
+                break;
+            }
+            if (text.includes(p)) {
+                result[cat] = true;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+// Check if a tweet matches ANY medios keyword
+function matchesMediosKeywords(tweetText, tweetHandle, keywords) {
+    const clf = clasificarPorMedios(tweetText, tweetHandle, keywords);
+    return Object.values(clf).some(v => v);
 }
 
 // Clasificar un tweet por poder basándose en keywords
@@ -182,6 +219,107 @@ app.get('/api/stats', (req, res) => {
     }
 });
 
+// ====== ENDPOINT: Estadísticas Medios (Zona Oriente) ======
+app.get('/api/stats/medios', (req, res) => {
+    try {
+        const allTweets = loadTweets();
+        const mediosKw = loadMediosKeywords();
+
+        const SKIP = ['migrated', 'desconocido', '@migrated', '@desconocido'];
+        const allFiltered = allTweets.filter(t =>
+            !SKIP.includes(t.handle) &&
+            t.text !== 'migrated' && t.name !== 'migrated'
+        );
+
+        // Only tweets matching medios keywords
+        const tweets = allFiltered.filter(t => matchesMediosKeywords(t.text, t.handle, mediosKw));
+
+        if (tweets.length === 0) {
+            return res.json({
+                totalTweets: 0, totalMedios: 0,
+                topMedios: [], conteoPorCategoria: {},
+                palabrasClaveTop: [], horasMasActivas: []
+            });
+        }
+
+        // Top Medios
+        const handleCount = {};
+        const handleNames = {};
+        for (const t of tweets) {
+            if (!t.handle) continue;
+            const h = t.handle.replace('@', '');
+            if (!h) continue;
+            handleCount[h] = (handleCount[h] || 0) + 1;
+            if (t.name) handleNames[h] = t.name;
+        }
+        const topMedios = Object.entries(handleCount)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([handle, count]) => ({
+                handle: '@' + handle,
+                nombre: handleNames[handle] || handle,
+                tweets: count
+            }));
+
+        // Distribución por categoría de medios
+        const conteoPorCategoria = { cuautla: 0, zona_oriente: 0, medios_locales: 0, seguridad: 0, politica_local: 0 };
+        for (const t of tweets) {
+            const clf = clasificarPorMedios(t.text, t.handle, mediosKw);
+            for (const [cat, matched] of Object.entries(clf)) {
+                if (matched) conteoPorCategoria[cat]++;
+            }
+        }
+
+        // Palabras clave top
+        const allKws = [];
+        for (const catPalabras of Object.values(mediosKw.categorias || {})) {
+            if (Array.isArray(catPalabras)) allKws.push(...catPalabras);
+        }
+        const searchableKws = allKws.filter(k => !k.startsWith('@') && k.length > 3);
+        const kwCount = {};
+        for (const t of tweets) {
+            const text = (t.text || '').toLowerCase();
+            for (const kw of searchableKws) {
+                if (text.includes(kw.toLowerCase())) {
+                    kwCount[kw] = (kwCount[kw] || 0) + 1;
+                }
+            }
+        }
+        const palabrasClaveTop = Object.entries(kwCount)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 15)
+            .map(([palabra, count]) => ({ palabra, count }));
+
+        // Horas más activas
+        const horaCount = {};
+        for (const t of tweets) {
+            if (t.date) {
+                const hora = new Date(t.date).getHours();
+                horaCount[hora + ':00'] = (horaCount[hora + ':00'] || 0) + 1;
+            }
+        }
+        const horasMasActivas = Object.entries(horaCount)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([hora, count]) => ({ hora, count }));
+
+        const mediosUnicos = new Set(tweets.map(t => (t.handle || '').replace('@', '')));
+
+        res.json({
+            totalTweets: tweets.length,
+            totalMedios: mediosUnicos.size,
+            topMedios,
+            conteoPorCategoria,
+            palabrasClaveTop,
+            horasMasActivas,
+            fecha: new Date().toISOString()
+        });
+    } catch (e) {
+        console.error('Error en /api/stats/medios:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // ====== ENDPOINT: Historial de Tweets (Con Filtros) ======
 app.get('/api/tweets', (req, res) => {
     try {
@@ -206,6 +344,39 @@ app.get('/api/tweets', (req, res) => {
 
             const limit = parseInt(req.query.limit) || 100;
             // Más recientes primero
+            const sorted = [...data].reverse().slice(0, limit);
+            res.json(sorted);
+        } else {
+            res.json([]);
+        }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ====== ENDPOINT: Tweets filtrados por Medios ======
+app.get('/api/tweets/medios', (req, res) => {
+    try {
+        if (fs.existsSync(TWEETS_FILE)) {
+            let data = JSON.parse(fs.readFileSync(TWEETS_FILE, 'utf8'));
+            const mediosKw = loadMediosKeywords();
+
+            const SKIP = ['migrated', 'desconocido', '@migrated', '@desconocido'];
+            data = data.filter(t => !SKIP.includes(t.handle) && t.text !== 'migrated');
+
+            // Filter only tweets matching medios keywords
+            data = data.filter(t => matchesMediosKeywords(t.text, t.handle, mediosKw));
+
+            if (req.query.handle) {
+                const searchHandle = req.query.handle.toLowerCase().replace('@', '');
+                data = data.filter(t => (t.handle || '').toLowerCase().replace('@', '').includes(searchHandle));
+            }
+            if (req.query.keyword) {
+                const searchKw = req.query.keyword.toLowerCase();
+                data = data.filter(t => (t.text || '').toLowerCase().includes(searchKw));
+            }
+
+            const limit = parseInt(req.query.limit) || 100;
             const sorted = [...data].reverse().slice(0, limit);
             res.json(sorted);
         } else {
@@ -341,6 +512,45 @@ app.post('/api/config/keywords', (req, res) => {
         Object.values(categorias).forEach(arr => total += arr.length);
 
         console.log(`📝 Keywords actualizadas. Total: ${total}`);
+        res.json({ success: true, totalKeywords: total });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ====== ENDPOINT: Configuración (Medios Keywords) ======
+app.get('/api/config/medios', (req, res) => {
+    try {
+        if (fs.existsSync(KEYWORDS_MEDIOS_FILE)) {
+            const config = JSON.parse(fs.readFileSync(KEYWORDS_MEDIOS_FILE, 'utf8'));
+            let total = 0;
+            if (config.categorias) {
+                Object.values(config.categorias).forEach(arr => total += arr.length);
+            }
+            res.json({ categorias: config.categorias, totalKeywords: total });
+        } else {
+            res.json({ categorias: {}, totalKeywords: 0 });
+        }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/config/keywords-medios', (req, res) => {
+    try {
+        const { categorias } = req.body;
+        if (!categorias) return res.status(400).json({ error: 'Falta objeto categorias' });
+
+        const existing = fs.existsSync(KEYWORDS_MEDIOS_FILE)
+            ? JSON.parse(fs.readFileSync(KEYWORDS_MEDIOS_FILE, 'utf8'))
+            : {};
+        const newConfig = { ...existing, categorias };
+        fs.writeFileSync(KEYWORDS_MEDIOS_FILE, JSON.stringify(newConfig, null, 2));
+
+        let total = 0;
+        Object.values(categorias).forEach(arr => total += arr.length);
+
+        console.log(`📝 Keywords Medios actualizadas. Total: ${total}`);
         res.json({ success: true, totalKeywords: total });
     } catch (e) {
         res.status(500).json({ error: e.message });

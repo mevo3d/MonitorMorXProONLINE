@@ -4,7 +4,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 import {
-    LayoutDashboard, Search, Bot, Settings, RefreshCw, Radio, Twitter, Globe, Clock, MessageSquare, ChevronRight, Zap, ExternalLink, Play, Edit, Plus, X, Save, ArrowLeft, Download, Menu, Send
+    LayoutDashboard, Search, Bot, Settings, RefreshCw, Radio, Twitter, Globe, Clock, MessageSquare, ChevronRight, Zap, ExternalLink, Play, Edit, Plus, X, Save, ArrowLeft, Download, Menu, Send, Newspaper, Building2
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -69,6 +69,7 @@ function App() {
     const [telegramTestStatus, setTelegramTestStatus] = useState({});
     const [feedTab, setFeedTab] = useState('twitter');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [monitorSection, setMonitorSection] = useState(null); // null = lobby, 'poderes', 'medios'
 
     useEffect(() => {
         fetchStats();
@@ -76,6 +77,16 @@ function App() {
         const interval = setInterval(fetchLogs, 3000);
         return () => clearInterval(interval);
     }, []);
+
+    // Re-fetch data when section changes
+    useEffect(() => {
+        if (monitorSection) {
+            setLoading(true);
+            setStats(null);
+            fetchStats();
+            fetchConfig();
+        }
+    }, [monitorSection]);
 
     useEffect(() => {
         if (activeTab === 'search') {
@@ -89,7 +100,8 @@ function App() {
 
     const fetchStats = async () => {
         try {
-            const res = await axios.get('/api/stats');
+            const endpoint = monitorSection === 'medios' ? '/api/stats/medios' : '/api/stats';
+            const res = await axios.get(endpoint);
             setStats(res.data);
             setLoading(false);
         } catch (error) {
@@ -100,7 +112,8 @@ function App() {
 
     const fetchConfig = async () => {
         try {
-            const res = await axios.get('/api/config');
+            const endpoint = monitorSection === 'medios' ? '/api/config/medios' : '/api/config';
+            const res = await axios.get(endpoint);
             setKeywords(res.data.categorias || {});
             setTotalKeywords(res.data.totalKeywords || 0);
         } catch (e) { console.error(e); }
@@ -147,7 +160,7 @@ function App() {
         // Si se activa un filtro desde el dashboard, cambiamos al tab de búsqueda automáticamente
         if (filter && activeTab !== 'search') setActiveTab('search');
 
-        let url = '/api/tweets?limit=50';
+        let url = monitorSection === 'medios' ? '/api/tweets/medios?limit=50' : '/api/tweets?limit=50';
         if (filter?.type === 'handle') {
             url += `&handle=${encodeURIComponent(filter.value)}`;
             fetchUserStats(filter.value);
@@ -184,11 +197,12 @@ function App() {
 
     const saveKeywords = async () => {
         try {
-            const res = await axios.post('/api/config/keywords', { categorias: keywords });
+            const endpoint = monitorSection === 'medios' ? '/api/config/keywords-medios' : '/api/config/keywords';
+            const res = await axios.post(endpoint, { categorias: keywords });
             if (res.data.success) {
                 setTotalKeywords(res.data.totalKeywords);
                 alert('Palabras clave actualizadas correctamente');
-                fetchStats(); // Refrescar stats con nuevas keywords
+                fetchStats();
             }
         } catch (e) {
             alert('Error guardando keywords: ' + e.message);
@@ -280,6 +294,72 @@ function App() {
         </button>
     );
 
+    // ====== LOBBY SELECTOR ======
+    const renderLobby = () => (
+        <div className="flex flex-col items-center justify-center min-h-[70vh] animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="text-center mb-12">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-blue-600/30 mx-auto mb-6">
+                    <Radio size={40} />
+                </div>
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight mb-3">
+                    Monitor<span className="text-blue-600">Mor</span> <span className="text-slate-400 font-normal text-2xl">Pro</span>
+                </h1>
+                <p className="text-slate-500 text-lg max-w-md mx-auto">
+                    Selecciona la sección que deseas monitorear
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl px-4">
+                {/* Poderes del Estado */}
+                <button
+                    onClick={() => { setMonitorSection('poderes'); setActiveTab('dashboard'); }}
+                    className="group relative bg-white rounded-3xl border-2 border-slate-200 hover:border-amber-400 p-8 text-left transition-all duration-300 hover:shadow-2xl hover:shadow-amber-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer overflow-hidden"
+                >
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-amber-50 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="relative z-10">
+                        <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-amber-500/30 mb-5 group-hover:scale-110 transition-transform">
+                            <Building2 size={28} />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">Poderes del Estado</h3>
+                        <p className="text-sm text-slate-500 leading-relaxed mb-4">
+                            Monitoreo del Poder Legislativo, Ejecutivo y Judicial del Estado de Morelos.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            <span className="text-[10px] bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Legislativo</span>
+                            <span className="text-[10px] bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Ejecutivo</span>
+                            <span className="text-[10px] bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Judicial</span>
+                        </div>
+                    </div>
+                </button>
+
+                {/* Medios / Zona Oriente */}
+                <button
+                    onClick={() => { setMonitorSection('medios'); setActiveTab('dashboard'); }}
+                    className="group relative bg-white rounded-3xl border-2 border-slate-200 hover:border-sky-400 p-8 text-left transition-all duration-300 hover:shadow-2xl hover:shadow-sky-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer overflow-hidden"
+                >
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-sky-50 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="relative z-10">
+                        <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-cyan-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-sky-500/30 mb-5 group-hover:scale-110 transition-transform">
+                            <Newspaper size={28} />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">Medios / Zona Oriente</h3>
+                        <p className="text-sm text-slate-500 leading-relaxed mb-4">
+                            Noticias y menciones de Cuautla, Zona Oriente y medios de comunicación regionales.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            <span className="text-[10px] bg-sky-50 text-sky-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Cuautla</span>
+                            <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Zona Oriente</span>
+                            <span className="text-[10px] bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Seguridad</span>
+                            <span className="text-[10px] bg-violet-50 text-violet-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Política</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+
+            <p className="text-xs text-slate-400 mt-10">Powered by MonitorMor Pro v2.1 — Inteligencia en Tiempo Real</p>
+        </div>
+    );
+
     // ====== DASHBOARD ======
     const renderDashboard = () => {
         if (loading) return (
@@ -289,12 +369,20 @@ function App() {
         );
         if (!stats) return <div className="p-10 text-center text-red-500 bg-red-50 rounded-xl border border-red-100">Error cargando estadísticas. Verifica el servidor.</div>;
 
-        const dataPoderes = [
-            { name: 'Legislativo', value: stats.conteoPorPoder?.legislativo || 0, color: '#F59E0B' },
-            { name: 'Gobierno', value: stats.conteoPorPoder?.gobierno || 0, color: '#10B981' },
-            { name: 'Judicial', value: stats.conteoPorPoder?.judicial || 0, color: '#3B82F6' },
-            { name: 'Otros', value: stats.conteoPorPoder?.otros || 0, color: '#94A3B8' }
-        ].filter(d => d.value > 0);
+        const dataPoderes = monitorSection === 'medios'
+            ? [
+                { name: 'Cuautla', value: stats.conteoPorCategoria?.cuautla || 0, color: '#F59E0B' },
+                { name: 'Zona Oriente', value: stats.conteoPorCategoria?.zona_oriente || 0, color: '#10B981' },
+                { name: 'Medios Locales', value: stats.conteoPorCategoria?.medios_locales || 0, color: '#3B82F6' },
+                { name: 'Seguridad', value: stats.conteoPorCategoria?.seguridad || 0, color: '#EF4444' },
+                { name: 'Política Local', value: stats.conteoPorCategoria?.politica_local || 0, color: '#8B5CF6' }
+            ].filter(d => d.value > 0)
+            : [
+                { name: 'Legislativo', value: stats.conteoPorPoder?.legislativo || 0, color: '#F59E0B' },
+                { name: 'Gobierno', value: stats.conteoPorPoder?.gobierno || 0, color: '#10B981' },
+                { name: 'Judicial', value: stats.conteoPorPoder?.judicial || 0, color: '#3B82F6' },
+                { name: 'Otros', value: stats.conteoPorPoder?.otros || 0, color: '#94A3B8' }
+            ].filter(d => d.value > 0);
 
         return (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -1099,6 +1187,15 @@ function App() {
                 </div>
 
                 <nav className="flex-1 px-4 space-y-2 mt-4">
+                    {monitorSection && (
+                        <button
+                            onClick={() => { setMonitorSection(null); setActiveTab('dashboard'); setIsSidebarOpen(false); }}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group cursor-pointer text-slate-500 hover:bg-slate-50 hover:text-slate-900 mb-2"
+                        >
+                            <ArrowLeft size={20} className="text-slate-400 group-hover:text-slate-600" />
+                            Cambiar Sección
+                        </button>
+                    )}
                     <NavButton id="dashboard" icon={LayoutDashboard} label="Resumen Ejecutivo" />
                     <NavButton id="search" icon={Globe} label="Feeds" />
                     <NavButton id="ai" icon={Bot} label="Asistente IA" />
@@ -1132,10 +1229,11 @@ function App() {
                         </button>
                         <div>
                             <h2 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight">
-                                {activeTab === 'dashboard' && 'Resumen Ejecutivo'}
-                                {activeTab === 'search' && (filterMode ? 'Resultados de Búsqueda' : 'Feeds en Vivo')}
-                                {activeTab === 'ai' && 'Chat Inteligente (IA)'}
-                                {activeTab === 'config' && 'Centro de Configuración'}
+                                {!monitorSection && 'Selecciona una Sección'}
+                                {monitorSection && activeTab === 'dashboard' && (monitorSection === 'medios' ? '📰 Resumen Medios' : '🏛️ Resumen Poderes')}
+                                {monitorSection && activeTab === 'search' && (filterMode ? 'Resultados de Búsqueda' : (monitorSection === 'medios' ? '📰 Feed Medios' : '🏛️ Feeds en Vivo'))}
+                                {monitorSection && activeTab === 'ai' && 'Chat Inteligente (IA)'}
+                                {monitorSection && activeTab === 'config' && 'Centro de Configuración'}
                             </h2>
                             <p className="text-sm text-slate-500 hidden md:block">
                                 {dayjs().format('dddd, D [de] MMMM [de] YYYY')}
@@ -1161,11 +1259,12 @@ function App() {
                 </header>
 
                 <div className="p-4 md:p-8 pb-32 flex-1 max-w-7xl mx-auto w-full">
-                    {activeTab === 'dashboard' && renderDashboard()}
-                    {activeTab === 'search' && renderFeed()}
-                    {activeTab === 'ai' && renderAI()}
-                    {activeTab === 'config' && renderConfig()}
-                    {renderLogs()}
+                    {!monitorSection && renderLobby()}
+                    {monitorSection && activeTab === 'dashboard' && renderDashboard()}
+                    {monitorSection && activeTab === 'search' && renderFeed()}
+                    {monitorSection && activeTab === 'ai' && renderAI()}
+                    {monitorSection && activeTab === 'config' && renderConfig()}
+                    {monitorSection && renderLogs()}
                 </div>
             </main>
         </div>

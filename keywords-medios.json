@@ -1,0 +1,85 @@
+{
+    "categorias": {
+        "cuautla": [
+            "Cuautla",
+            "Ayuntamiento de Cuautla",
+            "@AyuntaCuautla",
+            "Presidente Municipal Cuautla",
+            "DIF Cuautla",
+            "SAPAC",
+            "Seguridad Pública Cuautla",
+            "Hugo Estefanía",
+            "Policía Cuautla",
+            "Protección Civil Cuautla",
+            "Bomberos Cuautla",
+            "Mercado Cuautla",
+            "Centro de Cuautla"
+        ],
+        "zona_oriente": [
+            "Zona Oriente",
+            "Yautepec",
+            "Oaxtepec",
+            "Cocoyoc",
+            "Atlatlahucan",
+            "Tepoztlán",
+            "Tlayacapan",
+            "Totolapan",
+            "Ocuituco",
+            "Tetela del Volcán",
+            "Zacualpan",
+            "Jonacatepec",
+            "Jantetelco",
+            "Axochiapan",
+            "Tepalcingo",
+            "Ayala",
+            "Villa de Ayala"
+        ],
+        "medios_locales": [
+            "@noabordonoticias",
+            "@DiariodeMorelos",
+            "@DisplayNoticias",
+            "@ElSolDeCuautla",
+            "@LaMultimedios",
+            "@SolDeCuernavaca",
+            "@ElTxoroMatutino",
+            "@ZonaCuautla",
+            "@CuautlaDigital",
+            "Noticias de Cuautla",
+            "noticiasdecuautla.mx",
+            "45 Digital",
+            "Diario de Morelos"
+        ],
+        "seguridad": [
+            "Homicidio Cuautla",
+            "Asesinato Zona Oriente",
+            "Balacera Cuautla",
+            "Operativo Cuautla",
+            "Secuestro Cuautla",
+            "Extorsión Cuautla",
+            "Accidente Cuautla",
+            "Incendio Cuautla",
+            "Detención Cuautla",
+            "Guardia Nacional Cuautla",
+            "Balacera Yautepec",
+            "Homicidio Yautepec",
+            "Operativo Zona Oriente"
+        ],
+        "politica_local": [
+            "Regidor Cuautla",
+            "Cabildo Cuautla",
+            "Síndico Cuautla",
+            "Elección Cuautla",
+            "Protesta Cuautla",
+            "Manifestación Cuautla",
+            "@MUNICIPIOScbcmor",
+            "Alcalde Cuautla",
+            "Ayuntamiento Yautepec"
+        ]
+    },
+    "configuracion": {
+        "version": "1.0",
+        "ultima_actualizacion": "2026-02-21",
+        "descripcion": "Monitor de Medios - Zona Oriente de Morelos (Cuautla y municipios aledaños)",
+        "telegram_bot": "CUAUTLA"
+    }
+}
