@@ -499,111 +499,130 @@ function App() {
     );
 
     // ====== CONFIG ======
-    const renderConfig = () => (
-        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Header */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-blue-50 rounded-xl">
-                        <Settings className="text-blue-600" size={24} />
-                    </div>
-                    <div>
-                        <h3 className="text-xl font-bold text-slate-800">Centro de Control</h3>
-                        <p className="text-sm text-slate-500">{totalKeywords} palabras clave activas monitoreadas.</p>
-                    </div>
-                </div>
-                <button
-                    onClick={saveKeywords}
-                    className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-slate-900/20 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                >
-                    <Save size={18} /> Guardar Cambios
-                </button>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Col: API Keys */}
-                <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                        <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <Bot size={18} className="text-purple-500" /> API Keys
-                        </h4>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">OpenAI API Key</label>
-                                <input
-                                    type="password"
-                                    value={apiKey}
-                                    onChange={(e) => setApiKey(e.target.value)}
-                                    placeholder="sk-..."
-                                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all"
-                                />
-                            </div>
-                            <button
-                                onClick={saveApiKey}
-                                className="w-full bg-purple-50 text-purple-600 hover:bg-purple-100 py-2 rounded-xl text-sm font-bold transition-colors cursor-pointer"
-                            >
-                                Actualizar Llave
-                            </button>
+    const renderConfig = () => {
+        return (
+            <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* Header */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-blue-50 rounded-xl">
+                            <Settings className="text-blue-600" size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-slate-800">Centro de Control</h3>
+                            <p className="text-sm text-slate-500">{totalKeywords} palabras clave activas monitoreadas.</p>
                         </div>
                     </div>
-
-                    <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
-                        <h4 className="font-bold text-blue-800 mb-2 text-sm">ℹ️ Importante</h4>
-                        <p className="text-xs text-blue-600 leading-relaxed">
-                            Las palabras clave se utilizan para categorizar los tweets en los gráficos de poder (Legislativo, Gobierno, Judicial).
-                            Agregar nuevos términos actualizará la búsqueda en tiempo real.
-                        </p>
-                    </div>
+                    <button
+                        onClick={saveKeywords}
+                        className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-slate-900/20 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                    >
+                        <Save size={18} /> Guardar Cambios
+                    </button>
                 </div>
 
-                {/* Right Col: Keywords Editor */}
-                <div className="lg:col-span-2 space-y-6">
-                    {Object.entries(keywords).map(([category, list]) => (
-                        <div key={category} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 transition-all hover:shadow-md">
-                            <div className="flex justify-between items-center mb-4 border-b border-slate-50 pb-2">
-                                <h4 className="font-bold text-slate-800 flex items-center gap-2 capitalize">
-                                    <div className={`w-3 h-3 rounded-full ${category === 'legislativo' ? 'bg-amber-500' : category === 'gobierno' ? 'bg-green-500' : 'bg-blue-500'}`}></div>
-                                    {category}
-                                    <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{list.length} términos</span>
+                <div className="flex border-b border-slate-200 mb-6 mt-4">
+                    <button
+                        onClick={() => setConfigTab('twitter')}
+                        className={`px-4 py-3 font-medium text-sm transition-colors relative ${configTab === 'twitter' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px' : 'text-slate-500 hover:text-slate-700 bg-slate-50'}`}
+                    >
+                        Twitter (X) y General
+                    </button>
+                    <button
+                        onClick={() => setConfigTab('facebook')}
+                        className={`px-4 py-3 font-medium text-sm transition-colors relative ${configTab === 'facebook' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px' : 'text-slate-500 hover:text-slate-700 bg-slate-50 border-b border-slate-200'}`}
+                    >
+                        Monitoreo Meta (Facebook)
+                    </button>
+                </div>
+
+                {configTab === 'twitter' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Left Col: API Keys */}
+                        <div className="space-y-6">
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                                <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <Bot size={18} className="text-purple-500" /> API Keys
                                 </h4>
-                                {editingCategory === category ? (
-                                    <div className="flex gap-2">
-                                        <button onClick={() => setEditingCategory(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={18} /></button>
-                                        <button onClick={saveCategoryEdit} className="text-green-500 hover:text-green-700 cursor-pointer"><Save size={18} /></button>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">OpenAI API Key</label>
+                                        <input
+                                            type="password"
+                                            value={apiKey}
+                                            onChange={(e) => setApiKey(e.target.value)}
+                                            placeholder="sk-..."
+                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+                                        />
                                     </div>
-                                ) : (
-                                    <button onClick={() => handleEditCategory(category)} className="text-slate-400 hover:text-blue-500 transition-colors cursor-pointer">
-                                        <Edit size={16} />
+                                    <button
+                                        onClick={saveApiKey}
+                                        className="w-full bg-purple-50 text-purple-600 hover:bg-purple-100 py-2 rounded-xl text-sm font-bold transition-colors cursor-pointer"
+                                    >
+                                        Actualizar Llave
                                     </button>
-                                )}
+                                </div>
                             </div>
 
-                            {editingCategory === category ? (
-                                <textarea
-                                    value={tempKeywords}
-                                    onChange={(e) => setTempKeywords(e.target.value)}
-                                    className="w-full h-32 p-3 bg-slate-50 border border-blue-200 rounded-xl text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            ) : (
-                                <div className="flex flex-wrap gap-2">
-                                    {list.slice(0, 20).map((kw, i) => (
-                                        <span key={i} className="text-xs bg-slate-50 text-slate-600 border border-slate-100 px-2 py-1 rounded-lg">
-                                            {kw}
-                                        </span>
-                                    ))}
-                                    {list.length > 20 && (
-                                        <span className="text-xs bg-slate-100 text-slate-400 px-2 py-1 rounded-lg italic">
-                                            +{list.length - 20} más...
-                                        </span>
+                            <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
+                                <h4 className="font-bold text-blue-800 mb-2 text-sm">ℹ️ Importante</h4>
+                                <p className="text-xs text-blue-600 leading-relaxed">
+                                    Las palabras clave se utilizan para categorizar los tweets en los gráficos de poder (Legislativo, Gobierno, Judicial).
+                                    Agregar nuevos términos actualizará la búsqueda en tiempo real.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Right Col: Keywords Editor */}
+                        <div className="lg:col-span-2 space-y-6">
+                            {Object.entries(keywords).map(([category, list]) => (
+                                <div key={category} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 transition-all hover:shadow-md">
+                                    <div className="flex justify-between items-center mb-4 border-b border-slate-50 pb-2">
+                                        <h4 className="font-bold text-slate-800 flex items-center gap-2 capitalize">
+                                            <div className={`w-3 h-3 rounded-full ${category === 'legislativo' ? 'bg-amber-500' : category === 'gobierno' ? 'bg-green-500' : 'bg-blue-500'}`}></div>
+                                            {category}
+                                            <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{list.length} términos</span>
+                                        </h4>
+                                        {editingCategory === category ? (
+                                            <div className="flex gap-2">
+                                                <button onClick={() => setEditingCategory(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={18} /></button>
+                                                <button onClick={saveCategoryEdit} className="text-green-500 hover:text-green-700 cursor-pointer"><Save size={18} /></button>
+                                            </div>
+                                        ) : (
+                                            <button onClick={() => handleEditCategory(category)} className="text-slate-400 hover:text-blue-500 transition-colors cursor-pointer">
+                                                <Edit size={16} />
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {editingCategory === category ? (
+                                        <textarea
+                                            value={tempKeywords}
+                                            onChange={(e) => setTempKeywords(e.target.value)}
+                                            className="w-full h-32 p-3 bg-slate-50 border border-blue-200 rounded-xl text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    ) : (
+                                        <div className="flex flex-wrap gap-2">
+                                            {list.slice(0, 20).map((kw, i) => (
+                                                <span key={i} className="text-xs bg-slate-50 text-slate-600 border border-slate-100 px-2 py-1 rounded-lg">
+                                                    {kw}
+                                                </span>
+                                            ))}
+                                            {list.length > 20 && (
+                                                <span className="text-xs bg-slate-100 text-slate-400 px-2 py-1 rounded-lg italic">
+                                                    +{list.length - 20} más...
+                                                </span>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
-                            )}
+                            ))}
                         </div>
-                    ))}
-                </div>
+                    </div>
+                )}
             </div>
-        </div>
-    );
+        );
+    };
 
     const renderAI = () => (
         <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 h-[700px] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300">

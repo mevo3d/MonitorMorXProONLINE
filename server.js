@@ -21,6 +21,7 @@ const TWEETS_FILE = path.join(__dirname, 'tweets-seen.json');
 const KEYWORDS_FILE = path.join(__dirname, 'keywords.json');
 const SECRETS_FILE = path.join(__dirname, 'secrets.json');
 const PM2_LOG_FILE = '/root/.pm2/logs/monitor-x-v2-out.log';
+const FACEBOOK_PAGES_FILE = path.join(__dirname, 'facebook-pages.json'); // New config file para FB
 
 // ====== HELPERS ======
 
@@ -292,6 +293,36 @@ app.get('/api/config', (req, res) => {
         } else {
             res.status(404).json({ error: 'Configuración no encontrada' });
         }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ====== ENDPOINT: Configuración (Facebook Pages) ======
+app.get('/api/config/facebook', (req, res) => {
+    try {
+        if (fs.existsSync(FACEBOOK_PAGES_FILE)) {
+            const config = JSON.parse(fs.readFileSync(FACEBOOK_PAGES_FILE, 'utf8'));
+            res.json({ success: true, pages: config.pages || [], cookies: config.cookies || [] });
+        } else {
+            res.json({ success: true, pages: [], cookies: [] });
+        }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ====== ENDPOINT: Guardar Facebook Pages ======
+app.post('/api/config/facebook', (req, res) => {
+    try {
+        const { pages, cookies } = req.body;
+        if (!pages || !Array.isArray(pages)) return res.status(400).json({ error: 'Formato de pages inválido' });
+
+        const newConfig = { pages, cookies: cookies || [] };
+        fs.writeFileSync(FACEBOOK_PAGES_FILE, JSON.stringify(newConfig, null, 2));
+
+        console.log(`📝 Facebook Pages actualizadas. Total páginas: ${pages.length}`);
+        res.json({ success: true, message: 'Configuración guardada' });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
