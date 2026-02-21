@@ -83,8 +83,11 @@ function App() {
         if (monitorSection) {
             setLoading(true);
             setStats(null);
+            setTweets([]); // Clear old tweets immediately
+            setFilterMode(null);
             fetchStats();
             fetchConfig();
+            fetchTweets(null); // Re-fetch tweets for the new section
         }
     }, [monitorSection]);
 
