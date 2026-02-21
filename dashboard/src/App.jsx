@@ -26,6 +26,7 @@ function App() {
     const [logs, setLogs] = useState([]);
     const [chatMessages, setChatMessages] = useState([]);
     const [userPrompt, setUserPrompt] = useState('');
+    const [userStats, setUserStats] = useState(null);
     const [aiLoading, setAiLoading] = useState(false);
     const logsRef = useRef(null);
     const [configTab, setConfigTab] = useState('twitter');
@@ -68,6 +69,22 @@ function App() {
             setTotalKeywords(res.data.totalKeywords || 0);
         } catch (e) { console.error(e); }
     };
+
+    const fetchFacebookSettings = async () => {
+        try {
+            const res = await axios.get('/api/config/facebook');
+            setFbPages(res.data.pages || []);
+            setFbCookies(res.data.cookies || []);
+        } catch (e) {
+            console.error("Error fetching Facebook settings:", e);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'config') {
+            fetchFacebookSettings();
+        }
+    }, [activeTab]);
 
     const fetchLogs = async () => {
         try {
@@ -141,6 +158,15 @@ function App() {
         const list = tempKeywords.split(',').map(s => s.trim()).filter(s => s.length > 0);
         setKeywords(prev => ({ ...prev, [editingCategory]: list }));
         setEditingCategory(null);
+    };
+
+    const saveFacebookSettings = async () => {
+        try {
+            await axios.post('/api/config/facebook', { pages: fbPages, cookies: fbCookies });
+            alert('¡Configuración de Meta guardada exitosamente!');
+        } catch (e) {
+            alert('Error guardando Meta: ' + e.message);
+        }
     };
 
     const sendAiMessage = async () => {
@@ -636,6 +662,109 @@ function App() {
                                     )}
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                )}
+
+                {configTab === 'facebook' && (
+                    <div className="space-y-6 animate-in fade-in duration-300">
+                        <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
+                            <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2 text-lg">
+                                <Globe size={20} className="text-blue-600" />
+                                Páginas de Facebook en Monitoreo
+                            </h3>
+                            <p className="text-sm text-blue-700 mb-6">Añade los enlaces (URLs) completos de las Fan Pages o Perfiles Públicos a rastrear por el robot.</p>
+
+                            <div className="space-y-3">
+                                {fbPages.map((page, index) => (
+                                    <div key={index} className="flex gap-3 items-center bg-white p-3 rounded-xl border border-blue-200 shadow-sm">
+                                        <input
+                                            type="text"
+                                            value={page.name}
+                                            onChange={(e) => {
+                                                const newPages = [...fbPages];
+                                                newPages[index].name = e.target.value;
+                                                setFbPages(newPages);
+                                            }}
+                                            placeholder="Alias (Ej. Diario de Morelos)"
+                                            className="w-1/3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 px-3 py-2 text-sm text-slate-700 font-medium outline-none"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={page.url}
+                                            onChange={(e) => {
+                                                const newPages = [...fbPages];
+                                                newPages[index].url = e.target.value;
+                                                setFbPages(newPages);
+                                            }}
+                                            placeholder="https://facebook.com/..."
+                                            className="flex-1 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 px-3 py-2 text-sm text-slate-500 outline-none"
+                                        />
+                                        <button
+                                            onClick={() => setFbPages(fbPages.filter((_, i) => i !== index))}
+                                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                        >
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                <button
+                                    onClick={() => setFbPages([...fbPages, { name: '', url: '' }])}
+                                    className="mt-4 flex items-center justify-center gap-2 px-6 py-3 text-sm text-blue-600 hover:bg-blue-100 rounded-xl font-medium transition-colors w-full border-2 border-dashed border-blue-300 cursor-pointer"
+                                >
+                                    <Plus size={18} /> Agregar nueva página
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                            <h3 className="font-semibold text-slate-700 mb-2 flex items-center gap-2 text-lg">
+                                <Settings size={20} className="text-amber-500" />
+                                Pool de Cuentas Secundarias (Cookies Anti-Bloqueo)
+                            </h3>
+                            <p className="text-sm text-slate-500 mb-6">Inserta las cookies exportadas de navegadores con las 3 o 4 cuentas de respaldo. Cada línea se rotará para navegar en Facebook como humano (JSON Array).</p>
+
+                            <div className="space-y-4">
+                                {fbCookies.map((cookieStr, index) => (
+                                    <div key={index} className="flex gap-3 bg-white p-3 rounded-xl border border-slate-300 shadow-sm items-start">
+                                        <div className="pt-2 font-bold text-slate-400">#{index + 1}</div>
+                                        <textarea
+                                            value={cookieStr}
+                                            onChange={(e) => {
+                                                const newCookies = [...fbCookies];
+                                                newCookies[index] = e.target.value;
+                                                setFbCookies(newCookies);
+                                            }}
+                                            placeholder="Pega el contenido JSON de la extensión export cookies aquí..."
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500 text-xs text-slate-600 font-mono resize-y min-h-[80px] p-3 outline-none"
+                                            rows={3}
+                                        />
+                                        <button
+                                            onClick={() => setFbCookies(fbCookies.filter((_, i) => i !== index))}
+                                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                        >
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                <button
+                                    onClick={() => setFbCookies([...fbCookies, ''])}
+                                    className="mt-4 flex items-center justify-center gap-2 px-6 py-3 text-sm text-amber-700 hover:bg-amber-100/50 rounded-xl font-medium transition-colors border-2 border-dashed border-amber-300 cursor-pointer w-full"
+                                >
+                                    <Plus size={18} /> Agregar nueva cuenta de respaldo (JSON)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end pt-6 border-t border-slate-200">
+                            <button
+                                onClick={saveFacebookSettings}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
+                            >
+                                <Save size={20} /> Guardar Configuración de Meta
+                            </button>
                         </div>
                     </div>
                 )}
