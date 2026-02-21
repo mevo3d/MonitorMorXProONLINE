@@ -734,7 +734,7 @@ function App() {
                         </div>
                         <div>
                             <h3 className="text-xl font-bold text-slate-800">Centro de Control</h3>
-                            <p className="text-sm text-slate-500">{totalKeywords} palabras clave activas monitoreadas.</p>
+                            <p className="text-sm text-slate-500">{totalKeywords} palabras clave activas {monitorSection === 'medios' ? '(Medios / Zona Oriente)' : '(Poderes del Estado)'}.</p>
                         </div>
                     </div>
                     <button
@@ -750,19 +750,21 @@ function App() {
                         onClick={() => setConfigTab('twitter')}
                         className={`px-4 py-3 font-medium text-sm transition-colors relative ${configTab === 'twitter' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px' : 'text-slate-500 hover:text-slate-700 bg-slate-50'}`}
                     >
-                        Twitter (X) y General
+                        {monitorSection === 'medios' ? 'Palabras Clave (Medios)' : 'Twitter (X) y General'}
                     </button>
-                    <button
-                        onClick={() => setConfigTab('facebook')}
-                        className={`px-4 py-3 font-medium text-sm transition-colors relative ${configTab === 'facebook' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px' : 'text-slate-500 hover:text-slate-700 bg-slate-50'}`}
-                    >
-                        Monitoreo Meta (Facebook)
-                    </button>
+                    {monitorSection !== 'medios' && (
+                        <button
+                            onClick={() => setConfigTab('facebook')}
+                            className={`px-4 py-3 font-medium text-sm transition-colors relative ${configTab === 'facebook' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px' : 'text-slate-500 hover:text-slate-700 bg-slate-50'}`}
+                        >
+                            Monitoreo Meta (Facebook)
+                        </button>
+                    )}
                     <button
                         onClick={() => setConfigTab('telegram')}
                         className={`px-4 py-3 font-medium text-sm transition-colors relative ${configTab === 'telegram' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px' : 'text-slate-500 hover:text-slate-700 bg-slate-50 border-b border-slate-200'}`}
                     >
-                        Canales de Telegram
+                        {monitorSection === 'medios' ? 'Telegram (Medios)' : 'Canales de Telegram'}
                     </button>
                 </div>
 
@@ -981,10 +983,17 @@ function App() {
                                 <Send size={20} className="text-sky-600" />
                                 Canales de Envío (Destinos de Telegram)
                             </h3>
-                            <p className="text-sm text-sky-700 mb-6">Cada categoría (Poder Legislativo, Ejecutivo, etc.) se reporta automáticamente al bot y canal que asignes aquí. Las alertas prioritarias siempre cruzan al default también.</p>
+                            <p className="text-sm text-sky-700 mb-6">
+                                {monitorSection === 'medios'
+                                    ? 'Canal de Telegram exclusivo para noticias de la Zona Oriente y Cuautla.'
+                                    : 'Cada categoría (Poder Legislativo, Ejecutivo, etc.) se reporta automáticamente al bot y canal que asignes aquí.'}
+                            </p>
 
                             <div className="space-y-4">
-                                {['DEFAULT', 'LEGISLATIVO', 'EJECUTIVO', 'JUDICIAL', 'MORELOS', 'CUAUTLA'].map(channel => {
+                                {(monitorSection === 'medios'
+                                    ? ['CUAUTLA']
+                                    : ['DEFAULT', 'LEGISLATIVO', 'EJECUTIVO', 'JUDICIAL', 'MORELOS']
+                                ).map(channel => {
                                     const hasToken = !!telegramConfig[`TELEGRAM_TOKEN_${channel}`];
                                     const hasChat = !!telegramConfig[`TELEGRAM_CHAT_ID_${channel}`];
                                     const isConnected = hasToken && hasChat;
