@@ -4,7 +4,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 import {
-    LayoutDashboard, Search, Bot, Settings, RefreshCw, Radio, Twitter, Globe, Clock, MessageSquare, ChevronRight, Zap, ExternalLink, Play, Edit, Plus, X, Save, ArrowLeft, Download
+    LayoutDashboard, Search, Bot, Settings, RefreshCw, Radio, Twitter, Globe, Clock, MessageSquare, ChevronRight, Zap, ExternalLink, Play, Edit, Plus, X, Save, ArrowLeft, Download, Menu
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -26,12 +26,12 @@ function App() {
     const [logs, setLogs] = useState([]);
     const [chatMessages, setChatMessages] = useState([]);
     const [userPrompt, setUserPrompt] = useState('');
-    const [userStats, setUserStats] = useState(null);
     const [aiLoading, setAiLoading] = useState(false);
     const logsRef = useRef(null);
     const [configTab, setConfigTab] = useState('twitter');
     const [fbPages, setFbPages] = useState([]);
     const [fbCookies, setFbCookies] = useState([]);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
         fetchStats();
@@ -160,7 +160,7 @@ function App() {
 
     const NavButton = ({ id, icon: Icon, label }) => (
         <button
-            onClick={() => { setActiveTab(id); if (id !== 'search') setFilterMode(null); }}
+            onClick={() => { setActiveTab(id); if (id !== 'search') setFilterMode(null); setIsSidebarOpen(false); }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group cursor-pointer
         ${activeTab === id
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
@@ -728,9 +728,22 @@ function App() {
     );
 
     return (
-        <div className="min-h-screen flex bg-slate-50 font-sans text-slate-900">
-            <aside className="w-72 bg-white border-r border-slate-200 hidden md:flex flex-col flex-shrink-0 z-20 shadow-xl shadow-slate-200/50">
+        <div className="min-h-screen flex bg-slate-50 font-sans text-slate-900 overflow-hidden md:overflow-auto">
+            {/* Mobile Sidebar Overlay */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
+            <aside className={`fixed md:static inset-y-0 left-0 w-72 bg-white border-r border-slate-200 flex-col flex-shrink-0 z-50 shadow-xl shadow-slate-200/50 transform transition-transform duration-300 md:translate-x-0 flex ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="p-8">
+                    <div className="flex justify-between items-center mb-6 md:hidden">
+                        <button onClick={() => setIsSidebarOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 bg-slate-50 rounded-xl">
+                            <X size={20} />
+                        </button>
+                    </div>
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-600/30">
                             <Radio size={24} />
@@ -765,26 +778,34 @@ function App() {
                 </div>
             </aside>
 
-            <main className="flex-1 overflow-y-auto h-screen flex flex-col relative z-10">
-                <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-5 flex justify-between items-center sticky top-0 z-50">
-                    <div>
-                        <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
-                            {activeTab === 'dashboard' && 'Resumen Ejecutivo'}
-                            {activeTab === 'search' && (filterMode ? 'Resultados de Búsqueda' : 'Feed de Tweets en Vivo')}
-                            {activeTab === 'ai' && 'Chat Inteligente (IA)'}
-                            {activeTab === 'config' && 'Centro de Configuración'}
-                        </h2>
-                        <p className="text-sm text-slate-500 hidden md:block">
-                            {dayjs().format('dddd, D [de] MMMM [de] YYYY')}
-                        </p>
+            <main className="flex-1 overflow-y-auto h-screen flex flex-col relative z-10 w-full overflow-x-hidden">
+                <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 py-4 md:py-5 flex justify-between items-center sticky top-0 z-30">
+                    <div className="flex items-center gap-3">
+                        <button
+                            className="p-2 -ml-2 text-slate-500 hover:text-blue-600 md:hidden transition-colors bg-slate-50 rounded-xl"
+                            onClick={() => setIsSidebarOpen(true)}
+                        >
+                            <Menu size={24} />
+                        </button>
+                        <div>
+                            <h2 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight">
+                                {activeTab === 'dashboard' && 'Resumen Ejecutivo'}
+                                {activeTab === 'search' && (filterMode ? 'Resultados de Búsqueda' : 'Feed de Tweets en Vivo')}
+                                {activeTab === 'ai' && 'Chat Inteligente (IA)'}
+                                {activeTab === 'config' && 'Centro de Configuración'}
+                            </h2>
+                            <p className="text-sm text-slate-500 hidden md:block">
+                                {dayjs().format('dddd, D [de] MMMM [de] YYYY')}
+                            </p>
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-4">
                         <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
                             <Zap size={20} />
                         </button>
-                        <div className="w-px h-8 bg-slate-200"></div>
-                        <div className="flex items-center gap-3 pl-2">
+                        <div className="w-px h-8 bg-slate-200 hidden sm:block"></div>
+                        <div className="hidden sm:flex items-center gap-3 pl-2">
                             <div className="text-right hidden md:block">
                                 <p className="text-sm font-bold text-slate-700">Admin User</p>
                                 <p className="text-xs text-slate-400">Superadmin</p>
@@ -796,7 +817,7 @@ function App() {
                     </div>
                 </header>
 
-                <div className="p-8 pb-32 flex-1 max-w-7xl mx-auto w-full">
+                <div className="p-4 md:p-8 pb-32 flex-1 max-w-7xl mx-auto w-full">
                     {activeTab === 'dashboard' && renderDashboard()}
                     {activeTab === 'search' && renderFeed()}
                     {activeTab === 'ai' && renderAI()}
