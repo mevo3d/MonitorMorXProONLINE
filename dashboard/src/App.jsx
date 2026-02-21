@@ -34,6 +34,7 @@ function App() {
     const [fbCookies, setFbCookies] = useState([]);
     const [newCookieInput, setNewCookieInput] = useState('');
     const [telegramConfig, setTelegramConfig] = useState({});
+    const [feedTab, setFeedTab] = useState('twitter');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
@@ -416,15 +417,15 @@ function App() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100 gap-4">
                 <div>
                     <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        <Twitter className="text-blue-500" size={22} />
+                        {feedTab === 'twitter' ? <Twitter className="text-blue-500" size={22} /> : <Globe className="text-blue-600" size={22} />}
                         {filterMode
                             ? `Resultados para: ${filterMode.type === 'handle' ? '@' : '"'}${filterMode.value}${filterMode.type === 'handle' ? '' : '"'}`
-                            : 'Feed en Vivo'}
+                            : (feedTab === 'twitter' ? 'Feed de X en Vivo' : 'Feed de FB en Vivo')}
                     </h3>
                     <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
                         {filterMode
                             ? <button onClick={() => fetchTweets(null)} className="text-red-500 hover:underline font-bold flex items-center gap-1 cursor-pointer"><X size={12} /> Quitar filtros</button>
-                            : 'Últimos 50 tweets capturados'}
+                            : 'Últimos 50 publicaciones capturadas'}
                     </p>
                 </div>
                 <div className="flex gap-2">
@@ -445,18 +446,33 @@ function App() {
                 </div>
             </div>
 
-            {feedLoading && tweets.length === 0 ? (
+            <div className="flex border-b border-slate-200 mt-4">
+                <button
+                    onClick={() => setFeedTab('twitter')}
+                    className={`px-6 py-3 font-medium text-sm transition-colors relative flex items-center gap-2 ${feedTab === 'twitter' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px shadow-sm shadow-blue-500/5' : 'text-slate-500 hover:text-slate-700 bg-slate-50/50'}`}
+                >
+                    <Twitter size={16} /> Twitter (X)
+                </button>
+                <button
+                    onClick={() => setFeedTab('facebook')}
+                    className={`px-6 py-3 font-medium text-sm transition-colors relative flex items-center gap-2 ${feedTab === 'facebook' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px shadow-sm shadow-blue-500/5' : 'text-slate-500 hover:text-slate-700 bg-slate-50/50 border-b border-slate-200'}`}
+                >
+                    <Globe size={16} /> Facebook (Meta)
+                </button>
+            </div>
+
+            {feedLoading && tweets.filter(t => feedTab === 'twitter' ? (!t.source || t.source === 'twitter') : t.source === 'facebook').length === 0 ? (
                 <div className="flex justify-center py-20">
                     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
                 </div>
-            ) : tweets.length === 0 ? (
+            ) : tweets.filter(t => feedTab === 'twitter' ? (!t.source || t.source === 'twitter') : t.source === 'facebook').length === 0 ? (
                 <div className="text-center py-20 text-slate-400">
                     <Search size={48} className="mx-auto mb-4 opacity-20" />
-                    <p>No se encontraron tweets con estos criterios.</p>
+                    <p>No se encontraron publicaciones con estos criterios en {feedTab === 'twitter' ? 'Twitter' : 'Facebook'}.</p>
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {tweets.map((tweet) => (
+                    {tweets.filter(t => feedTab === 'twitter' ? (!t.source || t.source === 'twitter') : t.source === 'facebook').map((tweet) => (
                         <div key={tweet.id || Math.random()} className="bg-white rounded-2xl shadow-sm border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all duration-300 overflow-hidden group">
                             <div className="flex flex-col md:flex-row">
                                 {/* Media Column */}
@@ -546,12 +562,12 @@ function App() {
                                         </span>
                                         {tweet.id && (
                                             <a
-                                                href={`https://x.com/i/status/${tweet.id}`}
+                                                href={tweet.source === 'facebook' ? tweet.url : `https://x.com/i/status/${tweet.id}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="text-xs font-bold text-blue-500 hover:text-blue-700 flex items-center gap-1 hover:underline"
                                             >
-                                                Ver en X <ExternalLink size={12} />
+                                                {tweet.source === 'facebook' ? 'Ver en FB' : 'Ver en X'} <ExternalLink size={12} />
                                             </a>
                                         )}
                                     </div>
@@ -1006,7 +1022,7 @@ function App() {
 
                 <nav className="flex-1 px-4 space-y-2 mt-4">
                     <NavButton id="dashboard" icon={LayoutDashboard} label="Resumen Ejecutivo" />
-                    <NavButton id="search" icon={Twitter} label="Feed de Tweets" />
+                    <NavButton id="search" icon={Globe} label="Feeds" />
                     <NavButton id="ai" icon={Bot} label="Asistente IA" />
 
                     <div className="pt-6 mt-6 border-t border-slate-100">
@@ -1039,7 +1055,7 @@ function App() {
                         <div>
                             <h2 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight">
                                 {activeTab === 'dashboard' && 'Resumen Ejecutivo'}
-                                {activeTab === 'search' && (filterMode ? 'Resultados de Búsqueda' : 'Feed de Tweets en Vivo')}
+                                {activeTab === 'search' && (filterMode ? 'Resultados de Búsqueda' : 'Feeds en Vivo')}
                                 {activeTab === 'ai' && 'Chat Inteligente (IA)'}
                                 {activeTab === 'config' && 'Centro de Configuración'}
                             </h2>

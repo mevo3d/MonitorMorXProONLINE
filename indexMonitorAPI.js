@@ -11,6 +11,7 @@ import crypto from 'crypto';
 import https from 'https';
 import { exec } from 'child_process';
 import util from 'util';
+import { scrapeFacebookPages } from './facebook.js';
 
 // === IMPORTACIÓN DE MÓDULOS LEGACY ===
 import EstadisticasMedios from './EstadisticasMedios.js';
@@ -39,6 +40,7 @@ const CARPETA_VIDEOS_RESPALDO = path.join(__dirname, 'media_backup', 'video');
 
 // ====== VARIABLES GLOBALES ======
 let bot = null;
+const botsEspecializados = {};
 let allKeywords = [];
 let categorias = {};
 const tweetsEnviados = new Set();
@@ -78,7 +80,21 @@ try {
 // Telegram
 if (TELEGRAM_TOKEN && TELEGRAM_CHAT_ID) {
     bot = new TelegramBot(TELEGRAM_TOKEN, { polling: false }); // Polling false porque usamos un loop propio
-    console.log('📱 Bot Telegram configurado');
+    console.log('📱 Bot Telegram configurado (Principal)');
+
+    const canales = ['LEGISLATIVO', 'EJECUTIVO', 'JUDICIAL'];
+    canales.forEach(canal => {
+        const token = process.env[`TELEGRAM_TOKEN_${canal}`];
+        const chatId = process.env[`TELEGRAM_CHAT_ID_${canal}`];
+        if (token && chatId) {
+            botsEspecializados[canal.toLowerCase()] = {
+                bot: new TelegramBot(token, { polling: false }),
+                chatId
+            };
+            console.log(`📱 Bot Telegram configurado para canal: ${canal}`);
+        }
+    });
+
 } else {
     console.warn('⚠️ Telegram no configurado');
 }
@@ -347,7 +363,36 @@ async function procesarTweets(tweets) {
             // 4. Enviar a Telegram
             let videoPath = null; // Variable para almacenar path local
 
-            if (bot) {
+            // Determinar categoría del tweet
+            const categoriasDelTweet = [];
+            for (const [catName, keys] of Object.entries(categorias)) {
+                if (keys.some(k => normalizedText.includes(normalizeText(k)))) {
+                    categoriasDelTweet.push(catName.toLowerCase());
+                }
+            }
+
+            let targetBot = bot;
+            let targetChatId = TELEGRAM_CHAT_ID;
+
+            // Prioridad: Legislativo (congreso) > Ejecutivo (gobierno) > Judicial
+            if (categoriasDelTweet.includes('legislativo')) {
+                if (botsEspecializados['legislativo']) {
+                    targetBot = botsEspecializados['legislativo'].bot;
+                    targetChatId = botsEspecializados['legislativo'].chatId;
+                }
+            } else if (categoriasDelTweet.includes('gobierno') || categoriasDelTweet.includes('ejecutivo')) {
+                if (botsEspecializados['ejecutivo']) {
+                    targetBot = botsEspecializados['ejecutivo'].bot;
+                    targetChatId = botsEspecializados['ejecutivo'].chatId;
+                }
+            } else if (categoriasDelTweet.includes('judicial')) {
+                if (botsEspecializados['judicial']) {
+                    targetBot = botsEspecializados['judicial'].bot;
+                    targetChatId = botsEspecializados['judicial'].chatId;
+                }
+            }
+
+            if (targetBot) {
                 const timeAgo = getTimeAgo(new Date(timestamp));
                 let caption = `*${escapeMarkdown(name)}* ${escapeMarkdown(handle)}\n• ${formatTime(new Date(timestamp))} ${timeAgo}\n\n${escapeMarkdown(text)}`;
 
@@ -369,7 +414,7 @@ async function procesarTweets(tweets) {
                     videoPath = await descargarVideo(url, id);
                     if (videoPath) {
                         try {
-                            await bot.sendVideo(TELEGRAM_CHAT_ID, videoPath, { caption, parse_mode: 'Markdown' });
+                            await targetBot.sendVideo(targetChatId, videoPath, { caption, parse_mode: 'Markdown' });
                             sent = true;
                             // Nota: No borramos el video. Se archiva semanalmente.
                         } catch (err) {
@@ -382,12 +427,12 @@ async function procesarTweets(tweets) {
                 }
 
                 if (!sent && media && media.length > 0) {
-                    await bot.sendPhoto(TELEGRAM_CHAT_ID, media[0], { caption, parse_mode: 'Markdown' });
+                    await targetBot.sendPhoto(targetChatId, media[0], { caption, parse_mode: 'Markdown' });
                     sent = true;
                 } else if (!sent && cardImage) {
                     // Send Link Preview Image if no native media
                     try {
-                        await bot.sendPhoto(TELEGRAM_CHAT_ID, cardImage, { caption, parse_mode: 'Markdown' });
+                        await targetBot.sendPhoto(targetChatId, cardImage, { caption, parse_mode: 'Markdown' });
                         sent = true;
                     } catch (e) {
                         console.error('Error enviando card image:', e.message);
@@ -395,7 +440,7 @@ async function procesarTweets(tweets) {
                 }
 
                 if (!sent) {
-                    await bot.sendMessage(TELEGRAM_CHAT_ID, caption, {
+                    await targetBot.sendMessage(targetChatId, caption, {
                         parse_mode: 'Markdown',
                         disable_web_page_preview: !isVideo && !cardImage // Disable preview if we have video or card image ensuring no duplicate previews? Actually usually allowed.
                     });
@@ -416,7 +461,8 @@ async function procesarTweets(tweets) {
                     localPath: videoPath ? path.basename(videoPath) : null, // Guardar nombre de archivo local si existe
                     cardUrl: cardUrl || null,
                     cardTitle: cardTitle || null,
-                    cardImage: cardImage || null
+                    cardImage: cardImage || null,
+                    source: tweet.source || 'twitter'
                 });
                 if (history.length > 2000) history.shift();
                 fs.writeFileSync(SEEN_FILE, JSON.stringify(history, null, 2));
@@ -529,17 +575,35 @@ async function iniciarMonitor() {
 
     while (true) {
         try {
-            console.log(`🔄 Ciclo: ${new Date().toLocaleTimeString()}`);
-            const tweets = await buscarTweetsBrowser();
-            if (tweets.length > 0) {
-                await procesarTweets(tweets);
+            console.log(`\n--- 🔄 Ciclo: ${new Date().toLocaleTimeString()} ---`);
+            let nuevosItems = [];
+
+            // 1. Scraping de Twitter (X Pro)
+            try {
+                const tweets = await buscarTweetsBrowser();
+                if (tweets && tweets.length > 0) nuevosItems.push(...tweets);
+            } catch (e) {
+                console.error('Error scrapeando Twitter:', e.message);
+            }
+
+            // 2. Scraping de Facebook (Meta)
+            try {
+                const fbPosts = await scrapeFacebookPages();
+                if (fbPosts && fbPosts.length > 0) nuevosItems.push(...fbPosts);
+            } catch (e) {
+                console.error('Error scrapeando Facebook:', e.message);
+            }
+
+            // 3. Procesamiento Unificado
+            if (nuevosItems.length > 0) {
+                await procesarTweets(nuevosItems);
             }
 
             const uptime = Math.floor((Date.now() - startTime) / 1000);
-            console.log(`✅ Uptime: ${Math.floor(uptime / 60)}m | Encontrados: ${tweetsEnviados.size}`);
+            console.log(`✅ Uptime: ${Math.floor(uptime / 60)}m | Ítems Históricos Procesados: ${tweetsEnviados.size}`);
 
         } catch (e) {
-            console.error('💥 Error global:', e.message);
+            console.error('💥 Error global en el ciclo:', e.message);
             crashCount++;
             if (crashCount > MAX_CRASH_RETRIES) process.exit(1);
         }
