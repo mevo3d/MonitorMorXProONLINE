@@ -254,9 +254,24 @@ async function buscarTweetsBrowser() {
                         const name = rawText[0];
                         const handle = rawText[1];
 
-                        // Sacar texto completo (a veces innerText corta, pero es lo mejor que tenemos sin clic)
-                        // Si hay un "Show more" o "Mostrar más", el texto ya estaría en el DOM si es X Pro
-                        const text = textEl ? textEl.innerText : '';
+                        // Sacar texto completo
+                        let text = textEl ? textEl.innerText : '';
+                        if (textEl) {
+                            const linkElements = textEl.querySelectorAll('a[href]');
+                            let linksFound = [];
+                            linkElements.forEach(a => {
+                                const href = a.href;
+                                if (href.startsWith('http') && !href.includes('/status/') && !href.includes('/hashtag/') && !href.includes('/search?')) {
+                                    if (!text.includes(href) && !href.includes('pro.x.com')) {
+                                        linksFound.push(href);
+                                    }
+                                }
+                            });
+                            if (linksFound.length > 0) {
+                                linksFound = [...new Set(linksFound)];
+                                text += '\\n\\n🔗 Enlaces en Tweet: ' + linksFound.join(' ');
+                            }
+                        }
 
                         const timestamp = timeEl.getAttribute('datetime');
                         const url = linkEl.href;
@@ -394,7 +409,7 @@ async function procesarTweets(tweets) {
                     id,
                     handle,
                     name,
-                    text: text.substring(0, 500), // Guardar más texto
+                    text: text, // Guardar texto completo sin truncar
                     date: new Date().toISOString(),
                     type: isVideo ? 'video' : (media && media.length > 0 ? 'photo' : 'text'),
                     mediaUrls: media || [], // Guardar URLs originales

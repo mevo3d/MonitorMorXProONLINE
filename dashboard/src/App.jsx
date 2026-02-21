@@ -4,7 +4,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 import {
-    LayoutDashboard, Search, Bot, Settings, RefreshCw, Radio, Twitter, Globe, Clock, MessageSquare, ChevronRight, Zap, ExternalLink, Play, Edit, Plus, X, Save, ArrowLeft
+    LayoutDashboard, Search, Bot, Settings, RefreshCw, Radio, Twitter, Globe, Clock, MessageSquare, ChevronRight, Zap, ExternalLink, Play, Edit, Plus, X, Save, ArrowLeft, Download
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -412,6 +412,16 @@ function App() {
                                         <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-md text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
                                             {tweet.localPath ? 'Video' : 'Imagen'}
                                         </div>
+                                        {tweet.localPath && (
+                                            <a
+                                                href={`/media/video/${tweet.localPath}`}
+                                                download={tweet.localPath}
+                                                className="absolute bottom-2 right-2 bg-black/70 hover:bg-black/90 backdrop-blur-md text-white p-2.5 rounded-full shadow-lg transition-transform hover:scale-110"
+                                                title="Descargar Video"
+                                            >
+                                                <Download size={18} />
+                                            </a>
+                                        )}
                                     </div>
                                 )}
 
@@ -434,9 +444,15 @@ function App() {
                                         </span>
                                     </div>
 
-                                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line mb-4 flex-1">
-                                        {tweet.text}
-                                    </p>
+                                    <p
+                                        className="text-sm text-slate-700 leading-relaxed whitespace-pre-line mb-4 flex-1"
+                                        dangerouslySetInnerHTML={{
+                                            __html: (tweet.text || '').replace(
+                                                /(https?:\/\/[^\s]+)/g,
+                                                '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline break-all">$1</a>'
+                                            )
+                                        }}
+                                    />
 
                                     {/* Link Preview Card */}
                                     {tweet.cardUrl && (
