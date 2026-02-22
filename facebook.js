@@ -152,27 +152,6 @@ export async function scrapeFacebookPages(onNewPost) {
                     const extracted = [];
                     const seenTexts = new Set();
 
-                    // Extract page profile image
-                    let pageProfileImage = '';
-                    try {
-                        // Try: profile picture from the page header (svg > image or img near page name)
-                        const profileImg = document.querySelector('svg[aria-label] image[href*="fbcdn"]')
-                            || document.querySelector('a[aria-label] img[src*="fbcdn"][width]')
-                            || document.querySelector('div[data-imgperflogname] img[src*="fbcdn"]');
-                        if (profileImg) {
-                            pageProfileImage = profileImg.getAttribute('href') || profileImg.src || '';
-                        }
-                        // Fallback: first small circular image (profile pics are usually < 100px)
-                        if (!pageProfileImage) {
-                            const smallImgs = Array.from(document.querySelectorAll('img[src*="fbcdn"]'))
-                                .filter(img => {
-                                    const w = img.naturalWidth || img.width || 0;
-                                    return w > 20 && w <= 100 && !img.src.includes('emoji');
-                                });
-                            if (smallImgs.length > 0) pageProfileImage = smallImgs[0].src;
-                        }
-                    } catch (e) { /* ignore */ }
-
                     // Get only TOP-LEVEL articles (not comments which are nested articles)
                     const allArticles = Array.from(document.querySelectorAll('div[role="article"]'));
                     let postElements = allArticles.filter(el => {
@@ -189,6 +168,32 @@ export async function scrapeFacebookPages(onNewPost) {
 
                     for (const el of postElements) {
                         try {
+                            // === Extract author profile image from this post ===
+                            // FB posts have the page avatar as a small img inside an <a> at the top
+                            let postProfileImage = '';
+                            try {
+                                // Look for the author avatar: small image inside svg or img near the top of the article
+                                const avatarImg = el.querySelector('svg image[href*="fbcdn"]')
+                                    || el.querySelector('a[role="link"] svg image')
+                                    || el.querySelector('a[aria-label] img[src*="fbcdn"]');
+                                if (avatarImg) {
+                                    postProfileImage = avatarImg.getAttribute('href') || avatarImg.src || '';
+                                }
+                                // Fallback: first small img in the article (avatar is usually first and small)
+                                if (!postProfileImage) {
+                                    const firstImgs = Array.from(el.querySelectorAll('img[src*="fbcdn"]'))
+                                        .filter(img => {
+                                            const w = img.naturalWidth || img.width || parseInt(img.getAttribute('width')) || 0;
+                                            const h = img.naturalHeight || img.height || parseInt(img.getAttribute('height')) || 0;
+                                            // Avatar images are small (typically 40px), and NOT emojis
+                                            return (w > 20 && w <= 56) || (h > 20 && h <= 56);
+                                        });
+                                    if (firstImgs.length > 0) {
+                                        postProfileImage = firstImgs[0].src;
+                                    }
+                                }
+                            } catch (e) { /* ignore */ }
+
                             // Extract text from multiple possible selectors
                             let text = '';
                             const textSelectors = [
@@ -287,7 +292,7 @@ export async function scrapeFacebookPages(onNewPost) {
                                 media: mediaUrls,
                                 isVideo: !!videoEl,
                                 source: 'facebook',
-                                profileImage: pageProfileImage || ''
+                                profileImage: postProfileImage || ''
                             });
                         } catch (e) { /* skip individual post errors */ }
                     }
