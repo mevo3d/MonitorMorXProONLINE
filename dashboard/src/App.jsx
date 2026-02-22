@@ -1249,14 +1249,18 @@ function App() {
                             Cambiar Sección
                         </button>
                     )}
-                    <NavButton id="dashboard" icon={LayoutDashboard} label="Resumen Ejecutivo" />
-                    <NavButton id="search" icon={Globe} label="Feeds" />
-                    <NavButton id="ai" icon={Bot} label="Asistente IA" />
+                    {monitorSection && (
+                        <>
+                            <NavButton id="dashboard" icon={LayoutDashboard} label="Resumen Ejecutivo" />
+                            <NavButton id="search" icon={Globe} label="Feeds" />
+                            <NavButton id="ai" icon={Bot} label="Asistente IA" />
 
-                    <div className="pt-6 mt-6 border-t border-slate-100">
-                        <p className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Sistema</p>
-                        <NavButton id="config" icon={Settings} label="Configuración" />
-                    </div>
+                            <div className="pt-6 mt-6 border-t border-slate-100">
+                                <p className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Sistema</p>
+                                <NavButton id="config" icon={Settings} label="Configuración" />
+                            </div>
+                        </>
+                    )}
                 </nav>
 
                 <div className="p-6">
