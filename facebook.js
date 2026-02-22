@@ -220,12 +220,27 @@ export async function scrapeFacebookPages(onNewPost) {
                             }
 
                             // Detect media FIRST (before text check — image-only posts are valid)
+                            // FB lazy-loads images, so naturalWidth is often 0. Use URL patterns + attributes instead.
                             const allImgs = Array.from(el.querySelectorAll('img[src*="fbcdn"]'))
                                 .filter(img => {
                                     const src = img.src || '';
-                                    const w = img.naturalWidth || img.width || 0;
-                                    // Skip tiny icons, emojis, profile pics
-                                    return !src.includes('emoji') && !src.includes('rsrc.php') && w > 100;
+                                    // Skip FB static resources, emojis, icons
+                                    if (src.includes('rsrc.php') || src.includes('emoji') || src.includes('/static/')) return false;
+                                    // Check explicit HTML attributes or CSS for size hints
+                                    const attrW = parseInt(img.getAttribute('width')) || 0;
+                                    const attrH = parseInt(img.getAttribute('height')) || 0;
+                                    const cssW = img.style?.width ? parseInt(img.style.width) : 0;
+                                    const natW = img.naturalWidth || 0;
+                                    const natH = img.naturalHeight || 0;
+                                    // Post media images are usually large (>200px) or have no size set (lazy loaded)
+                                    // Avatars have explicit small sizes (40px, 36px)
+                                    if (attrW > 0 && attrW <= 60) return false; // It's an avatar
+                                    if (attrH > 0 && attrH <= 60) return false;
+                                    if (cssW > 0 && cssW <= 60) return false;
+                                    // If we have natural dimensions and they're small, skip
+                                    if (natW > 0 && natW <= 60 && natH > 0 && natH <= 60) return false;
+                                    // Accept: large images, or images with no size info (lazy loaded media)
+                                    return true;
                                 });
                             const videoEl = el.querySelector('video');
                             const mediaUrls = allImgs.map(img => img.src);
