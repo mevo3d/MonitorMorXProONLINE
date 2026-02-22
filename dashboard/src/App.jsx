@@ -171,8 +171,14 @@ function App() {
         if (filter?.type === 'keyword') url += `&keyword=${encodeURIComponent(filter.value)}`;
 
         try {
-            const res = await axios.get(url);
-            setTweets(res.data);
+            const [twitterRes, fbRes] = await Promise.all([
+                axios.get(url),
+                axios.get(`/api/posts/facebook?limit=50${filter?.type === 'keyword' ? `&keyword=${encodeURIComponent(filter.value)}` : ''}`)
+                    .catch(() => ({ data: [] })) // No fallar si FB no está disponible
+            ]);
+            const twitterData = (twitterRes.data || []).map(t => ({ ...t, source: t.source || 'twitter' }));
+            const fbData = (fbRes.data || []).map(f => ({ ...f, source: 'facebook' }));
+            setTweets([...twitterData, ...fbData]);
         } catch (e) {
             console.error("Error fetching tweets:", e);
         }
@@ -711,9 +717,14 @@ function App() {
                                                 <span className="text-xs text-slate-400 font-medium">{tweet.handle}</span>
                                             </div>
                                         </div>
-                                        <span className="text-xs text-slate-400 font-mono bg-slate-50 px-2 py-1 rounded border border-slate-100">
-                                            {dayjs(tweet.date).format('DD/MMM HH:mm')}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${tweet.source === 'facebook' ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-sky-50 text-sky-600 border-sky-200'}`}>
+                                                {tweet.source === 'facebook' ? '📘 Face' : '🐦 Twitter'}
+                                            </span>
+                                            <span className="text-xs text-slate-400 font-mono bg-slate-50 px-2 py-1 rounded border border-slate-100">
+                                                {dayjs(tweet.date).format('DD/MMM HH:mm')}
+                                            </span>
+                                        </div>
                                     </div>
 
                                     <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line mb-4 flex-1">

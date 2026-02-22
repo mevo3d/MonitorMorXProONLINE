@@ -29,6 +29,7 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const RETTIWT_API_KEY = process.env.RETTIWT_API_KEY;
 const KEYWORDS_FILE = 'keywords.json';
 const KEYWORDS_MEDIOS_FILE = path.join(__dirname, 'keywords-medios.json');
+const KEYWORDS_CUAUTLA_FILE = path.join(__dirname, 'keywords-cuautla.json');
 const SEEN_FILE = path.join(__dirname, 'tweets-seen.json');
 const FB_SEEN_FILE = path.join(__dirname, 'facebook-seen.json');
 const CHECK_INTERVAL_MS = 60000; // 60 segundos entre ciclos
@@ -47,6 +48,8 @@ let allKeywords = [];
 let categorias = {};
 let allMediosKeywords = [];
 let categoriasMedios = {};
+let allCuautlaKeywords = [];
+let categoriasCuautla = {};
 const tweetsEnviados = new Set();
 let crashCount = 0;
 let tweetsEncontradosCount = 0;
@@ -185,6 +188,22 @@ async function cargarPalabrasClave() {
             }
         } catch (e2) {
             console.error('Error cargando keywords medios:', e2.message);
+        }
+
+        // Cargar keywords de cuautla
+        try {
+            if (fs.existsSync(KEYWORDS_CUAUTLA_FILE)) {
+                const cuautlaData = await fs.promises.readFile(KEYWORDS_CUAUTLA_FILE, 'utf8');
+                const cuautlaConfig = JSON.parse(cuautlaData);
+                categoriasCuautla = cuautlaConfig.categorias || {};
+                allCuautlaKeywords = [];
+                for (const cat in categoriasCuautla) {
+                    allCuautlaKeywords.push(...categoriasCuautla[cat]);
+                }
+                console.log(`📍 Listas para buscar: ${allCuautlaKeywords.length} keywords (cuautla)`);
+            }
+        } catch (e3) {
+            console.error('Error cargando keywords cuautla:', e3.message);
         }
 
         return allKeywords;
@@ -468,7 +487,7 @@ async function procesarTweets(tweets) {
                     caption += `\n\n🔗 *${escapeMarkdown(cardTitle || 'Enlace externo')}*\n${escapeMarkdown(cardUrl)}`;
                 }
 
-                caption += `\n\n🔗 [Ver Tweet](${url})`;
+                caption += `\n\n🐦 [Ver Tweet](${url})`;
 
                 let sent = false;
 
@@ -674,17 +693,40 @@ async function iniciarMonitor() {
                         fbSeenIds.add(post.id);
                         fbNewCount++;
 
-                        // === Enviar a Telegram ===
-                        if (bot) {
-                            try {
-                                const fbName = escapeMarkdown(post.name || post.handle || 'Facebook');
-                                const fbText = escapeMarkdown((post.text || '').substring(0, 1500));
-                                const fbUrl = post.url || '';
+                        // === Enviar a Telegram por sección (keywords) ===
+                        try {
+                            const postTextLower = (post.text || '').toLowerCase();
+                            const postHandleLower = (post.handle || post.name || '').toLowerCase();
+                            const fbName = escapeMarkdown(post.name || post.handle || 'Facebook');
+                            const fbText = escapeMarkdown((post.text || '').substring(0, 1500));
+                            const fbUrl = post.url || '';
+
+                            // Determinar a qué secciones enviar basado en keywords
+                            const matchesSection = (keywords) => {
+                                for (const kw of keywords) {
+                                    const k = kw.toLowerCase();
+                                    if (k.startsWith('@') && postHandleLower.includes(k.replace('@', ''))) return true;
+                                    if (postTextLower.includes(k)) return true;
+                                }
+                                return false;
+                            };
+
+                            const targets = [];
+                            if (matchesSection(allKeywords)) targets.push('default');
+                            if (matchesSection(allMediosKeywords)) targets.push('morelos');
+                            if (matchesSection(allCuautlaKeywords)) targets.push('cuautla');
+                            // Si no matchea ninguna, enviar al default
+                            if (targets.length === 0) targets.push('default');
+
+                            for (const canal of targets) {
+                                const spec = botsEspecializados[canal];
+                                const tgBot = spec ? spec.bot : bot;
+                                const tgChatId = spec ? spec.chatId : TELEGRAM_CHAT_ID;
+                                if (!tgBot || !tgChatId) continue;
 
                                 let caption = `📘 *${fbName}*\n\n${fbText}`;
-
                                 if (fbUrl && !fbUrl.includes('#post-')) {
-                                    caption += `\n\n🔗 [Ver Post Face](${fbUrl})`;
+                                    caption += `\n\n📘 [Ver Post Face](${fbUrl})`;
                                 }
 
                                 let sent = false;
@@ -692,28 +734,28 @@ async function iniciarMonitor() {
                                 // Si tiene imagen, enviar como foto con caption
                                 if (post.media && post.media.length > 0 && post.media[0]) {
                                     try {
-                                        await bot.sendPhoto(TELEGRAM_CHAT_ID, post.media[0], {
+                                        await tgBot.sendPhoto(tgChatId, post.media[0], {
                                             caption,
                                             parse_mode: 'Markdown'
                                         });
                                         sent = true;
                                     } catch (photoErr) {
-                                        console.error('Error enviando foto FB:', photoErr.message);
+                                        console.error(`Error enviando foto FB a ${canal}:`, photoErr.message);
                                     }
                                 }
 
-                                // Fallback: enviar como texto con preview del link habilitado
+                                // Fallback: texto con preview del link
                                 if (!sent) {
-                                    await bot.sendMessage(TELEGRAM_CHAT_ID, caption, {
+                                    await tgBot.sendMessage(tgChatId, caption, {
                                         parse_mode: 'Markdown',
-                                        disable_web_page_preview: false // Permitir preview de la liga de FB
+                                        disable_web_page_preview: false
                                     });
                                 }
 
-                                console.log(`📘 Enviado a Telegram: ${post.name} (FB)`);
-                            } catch (tgErr) {
-                                console.error('Error enviando post FB a Telegram:', tgErr.message);
+                                console.log(`📘 FB -> ${canal.toUpperCase()}: ${post.name}`);
                             }
+                        } catch (tgErr) {
+                            console.error('Error enviando post FB a Telegram:', tgErr.message);
                         }
                     }
                     if (fbHistory.length > 5000) fbHistory.splice(0, fbHistory.length - 5000);
