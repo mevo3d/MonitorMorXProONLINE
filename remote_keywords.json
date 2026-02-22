@@ -1,0 +1,49 @@
+{
+  \ categorias\: {
+    \legislativo\: [
+      \Congreso de Morelos\,
+      \Diputados Morelos\,
+      \Legislatura Morelos\,
+      \Pleno del Congreso\,
+      \Bancada\,
+      \Diputado\,
+      \Diputada\
+    ],
+    \gobierno\: [
+      \Gobernadora Morelos\,
+      \Gobierno de Morelos\,
+      \Secretaría de Gobierno\,
+      \Margarita González Saravia\,
+      \Poder Ejecutivo de Morelos\,
+      \Palacio de Gobierno\,
+      \Ejecutivo Morelos\
+    ],
+    \judicial\: [
+      \TSJ Morelos\,
+      \Tribunal Superior de Justicia\,
+      \Poder Judicial de Morelos\,
+      \Magistrados Morelos\,
+      \Jueces Morelos\,
+      \Ciudad Judicial\,
+      \Fiscalía de Morelos\
+    ],
+    \morelos\: [
+      \Morelos\,
+      \Noticias Morelos\,
+      \Estado de Morelos\,
+      \Actualidad Morelos\,
+      \Seguridad Morelos\,
+      \Violencia Morelos\,
+      \Clima Morelos\
+    ],
+    \cuautla\: [
+      \Cuautla\,
+      \Zona Oriente\,
+      \Ayuntamiento de Cuautla\,
+      \Rodrigo Arredondo\,
+      \Noticias Cuautla\,
+      \Seguridad Cuautla\
+    ]
+  },
+  \descripcion\: \Monitor de Poderes y Noticias de Morelos\
+}

@@ -438,9 +438,9 @@ async function procesarTweets(tweets) {
 
             // === DUAL ROUTING: También enviar a bot de Medios si coincide con keywords de medios ===
             const foundMediosKw = allMediosKeywords.find(k => normalizedText.includes(normalizeText(k)) || (k.startsWith('@') && (handle || '').toLowerCase().includes(k.toLowerCase().replace('@', ''))));
-            if (foundMediosKw && botsEspecializados['cuautla']) {
-                const mediosBot = botsEspecializados['cuautla'].bot;
-                const mediosChatId = botsEspecializados['cuautla'].chatId;
+            if (foundMediosKw && botsEspecializados['morelos']) {
+                const mediosBot = botsEspecializados['morelos'].bot;
+                const mediosChatId = botsEspecializados['morelos'].chatId;
                 // Only send to medios bot if it's different from the target bot
                 if (mediosBot !== targetBot || mediosChatId !== targetChatId) {
                     try {

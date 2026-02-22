@@ -45,9 +45,10 @@ function loadMediosKeywords() {
 function clasificarPorMedios(tweetText, tweetHandle, keywords) {
     const text = (tweetText || '').toLowerCase();
     const handle = (tweetHandle || '').toLowerCase();
-    const result = { cuautla: false, zona_oriente: false, medios_locales: false, seguridad: false, politica_local: false };
-
     const cats = keywords.categorias || {};
+    const result = {};
+    for (const cat of Object.keys(cats)) result[cat] = false;
+
     for (const [cat, palabras] of Object.entries(cats)) {
         if (!Array.isArray(palabras)) continue;
         for (const palabra of palabras) {
@@ -268,7 +269,8 @@ app.get('/api/stats/medios', (req, res) => {
             }));
 
         // Distribución por categoría de medios
-        const conteoPorCategoria = { cuautla: 0, zona_oriente: 0, medios_locales: 0, seguridad: 0, politica_local: 0 };
+        const conteoPorCategoria = {};
+        for (const cat of Object.keys(mediosKw.categorias || {})) conteoPorCategoria[cat] = 0;
         for (const t of tweets) {
             const clf = clasificarPorMedios(t.text, t.handle, mediosKw);
             for (const [cat, matched] of Object.entries(clf)) {

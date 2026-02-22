@@ -374,11 +374,10 @@ function App() {
 
         const dataPoderes = monitorSection === 'medios'
             ? [
-                { name: 'Cuautla', value: stats.conteoPorCategoria?.cuautla || 0, color: '#F59E0B' },
-                { name: 'Zona Oriente', value: stats.conteoPorCategoria?.zona_oriente || 0, color: '#10B981' },
-                { name: 'Medios Locales', value: stats.conteoPorCategoria?.medios_locales || 0, color: '#3B82F6' },
-                { name: 'Seguridad', value: stats.conteoPorCategoria?.seguridad || 0, color: '#EF4444' },
-                { name: 'Política Local', value: stats.conteoPorCategoria?.politica_local || 0, color: '#8B5CF6' }
+                { name: 'Medios', value: stats.conteoPorCategoria?.medios_morelos || 0, color: '#3B82F6' },
+                { name: 'Noticias Capital', value: stats.conteoPorCategoria?.noticias_capital || 0, color: '#F59E0B' },
+                { name: 'Morelos General', value: stats.conteoPorCategoria?.morelos_general || 0, color: '#10B981' },
+                { name: 'Seguridad', value: stats.conteoPorCategoria?.seguridad || 0, color: '#EF4444' }
             ].filter(d => d.value > 0)
             : [
                 { name: 'Legislativo', value: stats.conteoPorPoder?.legislativo || 0, color: '#F59E0B' },
@@ -1002,8 +1001,8 @@ function App() {
 
                             <div className="space-y-4">
                                 {(monitorSection === 'medios'
-                                    ? ['CUAUTLA']
-                                    : ['DEFAULT', 'LEGISLATIVO', 'EJECUTIVO', 'JUDICIAL', 'MORELOS']
+                                    ? ['MORELOS']
+                                    : ['DEFAULT', 'LEGISLATIVO', 'EJECUTIVO', 'JUDICIAL']
                                 ).map(channel => {
                                     const hasToken = !!telegramConfig[`TELEGRAM_TOKEN_${channel}`];
                                     const hasChat = !!telegramConfig[`TELEGRAM_CHAT_ID_${channel}`];
