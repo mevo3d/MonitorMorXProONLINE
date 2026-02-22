@@ -742,6 +742,50 @@ app.get('/api/posts/facebook', (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ====== ENDPOINT: Configuración (Facebook) ======
+app.get('/api/config/facebook', (req, res) => {
+    try {
+        const pages = fs.existsSync(FACEBOOK_PAGES_FILE) ? JSON.parse(fs.readFileSync(FACEBOOK_PAGES_FILE, 'utf8')).pages || [] : [];
+        const cookiesFile = path.join(__dirname, 'cookies.json');
+        let cookies = [];
+        if (fs.existsSync(cookiesFile)) {
+            try {
+                const raw = fs.readFileSync(cookiesFile, 'utf8');
+                // cookies.json puede ser un array directo o un objeto con "cookies" key
+                const parsed = JSON.parse(raw);
+                cookies = Array.isArray(parsed) ? [raw] : (parsed.cookies || [raw]);
+            } catch (e) { cookies = []; }
+        }
+        res.json({ pages, cookies });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/config/facebook/pages', (req, res) => {
+    try {
+        const { pages } = req.body;
+        if (!pages || !Array.isArray(pages)) return res.status(400).json({ error: 'Falta array de pages' });
+        // Filtrar páginas vacías
+        const validPages = pages.filter(p => p.name && p.url);
+        fs.writeFileSync(FACEBOOK_PAGES_FILE, JSON.stringify({ pages: validPages }, null, 2));
+        console.log(`📘 Páginas Facebook actualizadas: ${validPages.length} páginas`);
+        res.json({ success: true, totalPages: validPages.length });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/config/facebook/cookies', (req, res) => {
+    try {
+        const { cookies } = req.body;
+        if (!cookies || !Array.isArray(cookies)) return res.status(400).json({ error: 'Falta array de cookies' });
+        const cookiesFile = path.join(__dirname, 'cookies.json');
+        // Guardar la primera cookie activa como el archivo principal
+        if (cookies.length > 0) {
+            fs.writeFileSync(cookiesFile, cookies[0]);
+        }
+        console.log(`🍪 Cookies Facebook actualizadas: ${cookies.length} cuentas`);
+        res.json({ success: true, totalCookies: cookies.length });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ====== ENDPOINT: Configuración (Telegram) ======
 app.get('/api/config/telegram', (req, res) => {
     try {

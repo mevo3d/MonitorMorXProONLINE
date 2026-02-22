@@ -236,10 +236,29 @@ function App() {
 
     const saveFacebookSettings = async () => {
         try {
-            await axios.post('/api/config/facebook', { pages: fbPages, cookies: fbCookies });
+            await axios.post('/api/config/facebook/pages', { pages: fbPages });
+            await axios.post('/api/config/facebook/cookies', { cookies: fbCookies });
             alert('¡Configuración de Meta guardada exitosamente!');
         } catch (e) {
             alert('Error guardando Meta: ' + e.message);
+        }
+    };
+
+    const saveFbPages = async () => {
+        try {
+            const res = await axios.post('/api/config/facebook/pages', { pages: fbPages });
+            alert(`¡${res.data.totalPages} páginas de Facebook guardadas!`);
+        } catch (e) {
+            alert('Error guardando páginas: ' + e.message);
+        }
+    };
+
+    const saveFbCookies = async () => {
+        try {
+            const res = await axios.post('/api/config/facebook/cookies', { cookies: fbCookies });
+            alert(`¡${res.data.totalCookies} cookies guardadas!`);
+        } catch (e) {
+            alert('Error guardando cookies: ' + e.message);
         }
     };
 
@@ -992,6 +1011,13 @@ function App() {
                                 >
                                     <Plus size={18} /> Agregar nueva página
                                 </button>
+
+                                <button
+                                    onClick={saveFbPages}
+                                    className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/30 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                                >
+                                    <Save size={18} /> Guardar Páginas ({fbPages.filter(p => p.name && p.url).length})
+                                </button>
                             </div>
                         </div>
 
@@ -1057,10 +1083,10 @@ function App() {
 
                         <div className="flex justify-end pt-6 border-t border-slate-200">
                             <button
-                                onClick={saveFacebookSettings}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
+                                onClick={saveFbCookies}
+                                className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-amber-500/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
                             >
-                                <Save size={20} /> Guardar Configuración de Meta
+                                <Save size={20} /> Guardar Cookies ({fbCookies.length})
                             </button>
                         </div>
                     </div>
