@@ -193,7 +193,31 @@ export async function scrapeFacebookPages(onNewPost) {
                                 }
                             }
 
-                            if (!text || text.length < 10) continue;
+                            // Detect media FIRST (before text check — image-only posts are valid)
+                            const allImgs = Array.from(el.querySelectorAll('img[src*="fbcdn"]'))
+                                .filter(img => {
+                                    const src = img.src || '';
+                                    const w = img.naturalWidth || img.width || 0;
+                                    // Skip tiny icons, emojis, profile pics
+                                    return !src.includes('emoji') && !src.includes('rsrc.php') && w > 100;
+                                });
+                            const videoEl = el.querySelector('video');
+                            const mediaUrls = allImgs.map(img => img.src);
+
+                            // For image-only posts, try to get alt text from images (FB puts text overlays here)
+                            if (!text || text.length < 5) {
+                                for (const img of allImgs) {
+                                    const alt = (img.alt || img.getAttribute('aria-label') || '').trim();
+                                    if (alt.length > 10 && !alt.startsWith('May be') && !alt.startsWith('No photo')) {
+                                        text = alt;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // A post is valid if it has text OR media
+                            const hasMedia = mediaUrls.length > 0 || !!videoEl;
+                            if ((!text || text.length < 5) && !hasMedia) continue;
 
                             // Dedup
                             const textKey = text.substring(0, 80);
@@ -226,16 +250,11 @@ export async function scrapeFacebookPages(onNewPost) {
 
                             if (!postUrl) postUrl = `${window.location.href}#post-${Date.now()}`;
 
-                            // Media
-                            const imgEl = el.querySelector('img[referrerpolicy="origin-when-cross-origin"]') ||
-                                el.querySelector('img[src*="fbcdn"]');
-                            const videoEl = el.querySelector('video');
-                            const mediaUrls = [];
-                            if (imgEl && imgEl.src && !imgEl.src.includes('emoji')) mediaUrls.push(imgEl.src);
+                            // mediaUrls ya fue calculado arriba
 
-                            // Generate stable ID
                             const idMatch = postUrl.match(/posts\/(\d+)/) || postUrl.match(/fbid=(\d+)/) || postUrl.match(/permalink\/(\d+)/);
-                            const id = idMatch ? `fb_${idMatch[1]}` : `fb_${textKey.replace(/\W/g, '').substring(0, 20)}_${Date.now()}`;
+                            const idKey = (text || '').substring(0, 40).replace(/\W/g, '');
+                            const id = idMatch ? `fb_${idMatch[1]}` : `fb_${idKey || 'img'}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
 
                             extracted.push({
                                 id,
