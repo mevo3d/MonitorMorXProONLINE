@@ -152,8 +152,12 @@ export async function scrapeFacebookPages(onNewPost) {
                     const extracted = [];
                     const seenTexts = new Set();
 
-                    // Strategy 1: role="article" elements (most reliable)
-                    let postElements = Array.from(document.querySelectorAll('div[role="article"]'));
+                    // Get only TOP-LEVEL articles (not comments which are nested articles)
+                    const allArticles = Array.from(document.querySelectorAll('div[role="article"]'));
+                    let postElements = allArticles.filter(el => {
+                        const parentArticle = el.parentElement?.closest('div[role="article"]');
+                        return !parentArticle;
+                    });
 
                     // Strategy 2: If no articles, try data-ad-preview
                     if (postElements.length === 0) {
