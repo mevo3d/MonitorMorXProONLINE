@@ -673,6 +673,48 @@ async function iniciarMonitor() {
                         });
                         fbSeenIds.add(post.id);
                         fbNewCount++;
+
+                        // === Enviar a Telegram ===
+                        if (bot) {
+                            try {
+                                const fbName = escapeMarkdown(post.name || post.handle || 'Facebook');
+                                const fbText = escapeMarkdown((post.text || '').substring(0, 1500));
+                                const fbUrl = post.url || '';
+
+                                let caption = `📘 *${fbName}*\n\n${fbText}`;
+
+                                if (fbUrl && !fbUrl.includes('#post-')) {
+                                    caption += `\n\n🔗 [Ver Post Face](${fbUrl})`;
+                                }
+
+                                let sent = false;
+
+                                // Si tiene imagen, enviar como foto con caption
+                                if (post.media && post.media.length > 0 && post.media[0]) {
+                                    try {
+                                        await bot.sendPhoto(TELEGRAM_CHAT_ID, post.media[0], {
+                                            caption,
+                                            parse_mode: 'Markdown'
+                                        });
+                                        sent = true;
+                                    } catch (photoErr) {
+                                        console.error('Error enviando foto FB:', photoErr.message);
+                                    }
+                                }
+
+                                // Fallback: enviar como texto con preview del link habilitado
+                                if (!sent) {
+                                    await bot.sendMessage(TELEGRAM_CHAT_ID, caption, {
+                                        parse_mode: 'Markdown',
+                                        disable_web_page_preview: false // Permitir preview de la liga de FB
+                                    });
+                                }
+
+                                console.log(`📘 Enviado a Telegram: ${post.name} (FB)`);
+                            } catch (tgErr) {
+                                console.error('Error enviando post FB a Telegram:', tgErr.message);
+                            }
+                        }
                     }
                     if (fbHistory.length > 5000) fbHistory.splice(0, fbHistory.length - 5000);
                     fs.writeFileSync(FB_SEEN_FILE, JSON.stringify(fbHistory, null, 2));
