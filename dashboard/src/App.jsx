@@ -345,15 +345,15 @@ function App() {
                         <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-cyan-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-sky-500/30 mb-5 group-hover:scale-110 transition-transform">
                             <Newspaper size={28} />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">Medios / Zona Oriente</h3>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">Medios y Noticias Morelos</h3>
                         <p className="text-sm text-slate-500 leading-relaxed mb-4">
-                            Noticias y menciones de Cuautla, Zona Oriente y medios de comunicación regionales.
+                            Noticias, medios de comunicación y cobertura informativa del Estado de Morelos.
                         </p>
                         <div className="flex flex-wrap gap-2">
-                            <span className="text-[10px] bg-sky-50 text-sky-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Cuautla</span>
-                            <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Zona Oriente</span>
+                            <span className="text-[10px] bg-sky-50 text-sky-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Medios</span>
+                            <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Noticias</span>
                             <span className="text-[10px] bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Seguridad</span>
-                            <span className="text-[10px] bg-violet-50 text-violet-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Política</span>
+                            <span className="text-[10px] bg-violet-50 text-violet-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Morelos</span>
                         </div>
                     </div>
                 </button>
@@ -383,8 +383,7 @@ function App() {
             : [
                 { name: 'Legislativo', value: stats.conteoPorPoder?.legislativo || 0, color: '#F59E0B' },
                 { name: 'Gobierno', value: stats.conteoPorPoder?.gobierno || 0, color: '#10B981' },
-                { name: 'Judicial', value: stats.conteoPorPoder?.judicial || 0, color: '#3B82F6' },
-                { name: 'Otros', value: stats.conteoPorPoder?.otros || 0, color: '#94A3B8' }
+                { name: 'Judicial', value: stats.conteoPorPoder?.judicial || 0, color: '#3B82F6' }
             ].filter(d => d.value > 0);
 
         return (
