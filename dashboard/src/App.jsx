@@ -4,7 +4,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 import {
-    LayoutDashboard, Search, Bot, Settings, RefreshCw, Radio, Twitter, Globe, Clock, MessageSquare, ChevronRight, Zap, ExternalLink, Play, Edit, Plus, X, Save, ArrowLeft, Download, Menu, Send, Newspaper, Building2
+    LayoutDashboard, Search, Bot, Settings, RefreshCw, Radio, Twitter, Globe, Clock, MessageSquare, ChevronRight, Zap, ExternalLink, Play, Edit, Plus, X, Save, ArrowLeft, Download, Menu, Send, Newspaper, Building2, MapPin
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -103,7 +103,7 @@ function App() {
 
     const fetchStats = async () => {
         try {
-            const endpoint = monitorSection === 'medios' ? '/api/stats/medios' : '/api/stats';
+            const endpoint = monitorSection === 'medios' ? '/api/stats/medios' : monitorSection === 'cuautla' ? '/api/stats/cuautla' : '/api/stats';
             const res = await axios.get(endpoint);
             setStats(res.data);
             setLoading(false);
@@ -115,7 +115,7 @@ function App() {
 
     const fetchConfig = async () => {
         try {
-            const endpoint = monitorSection === 'medios' ? '/api/config/medios' : '/api/config';
+            const endpoint = monitorSection === 'medios' ? '/api/config/medios' : monitorSection === 'cuautla' ? '/api/config/cuautla' : '/api/config';
             const res = await axios.get(endpoint);
             setKeywords(res.data.categorias || {});
             setTotalKeywords(res.data.totalKeywords || 0);
@@ -163,7 +163,7 @@ function App() {
         // Si se activa un filtro desde el dashboard, cambiamos al tab de búsqueda automáticamente
         if (filter && activeTab !== 'search') setActiveTab('search');
 
-        let url = monitorSection === 'medios' ? '/api/tweets/medios?limit=50' : '/api/tweets?limit=50';
+        let url = monitorSection === 'medios' ? '/api/tweets/medios?limit=50' : monitorSection === 'cuautla' ? '/api/tweets/cuautla?limit=50' : '/api/tweets?limit=50';
         if (filter?.type === 'handle') {
             url += `&handle=${encodeURIComponent(filter.value)}`;
             fetchUserStats(filter.value);
@@ -200,7 +200,7 @@ function App() {
 
     const saveKeywords = async () => {
         try {
-            const endpoint = monitorSection === 'medios' ? '/api/config/keywords-medios' : '/api/config/keywords';
+            const endpoint = monitorSection === 'medios' ? '/api/config/keywords-medios' : monitorSection === 'cuautla' ? '/api/config/keywords-cuautla' : '/api/config/keywords';
             const res = await axios.post(endpoint, { categorias: keywords });
             if (res.data.success) {
                 setTotalKeywords(res.data.totalKeywords);
@@ -357,6 +357,30 @@ function App() {
                         </div>
                     </div>
                 </button>
+
+                {/* Cuautla y Zona Oriente */}
+                <button
+                    onClick={() => { setMonitorSection('cuautla'); setActiveTab('dashboard'); }}
+                    className="group relative bg-white rounded-3xl border-2 border-slate-200 hover:border-green-400 p-8 text-left transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer overflow-hidden"
+                >
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-green-50 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="relative z-10">
+                        <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-green-500/30 mb-5 group-hover:scale-110 transition-transform">
+                            <MapPin size={28} />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">Cuautla y Zona Oriente</h3>
+                        <p className="text-sm text-slate-500 leading-relaxed mb-4">
+                            Noticias, eventos y política de Cuautla y la región oriente de Morelos.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            <span className="text-[10px] bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Cuautla</span>
+                            <span className="text-[10px] bg-lime-50 text-lime-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Zona Oriente</span>
+                            <span className="text-[10px] bg-teal-50 text-teal-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Medios Locales</span>
+                            <span className="text-[10px] bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Seguridad</span>
+                            <span className="text-[10px] bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Política Local</span>
+                        </div>
+                    </div>
+                </button>
             </div>
 
             <p className="text-xs text-slate-400 mt-10">Powered by MonitorMor Pro v2.1 — Inteligencia en Tiempo Real</p>
@@ -379,11 +403,19 @@ function App() {
                 { name: 'Morelos General', value: stats.conteoPorCategoria?.morelos_general || 0, color: '#10B981' },
                 { name: 'Seguridad', value: stats.conteoPorCategoria?.seguridad || 0, color: '#EF4444' }
             ].filter(d => d.value > 0)
-            : [
-                { name: 'Legislativo', value: stats.conteoPorPoder?.legislativo || 0, color: '#F59E0B' },
-                { name: 'Gobierno', value: stats.conteoPorPoder?.gobierno || 0, color: '#10B981' },
-                { name: 'Judicial', value: stats.conteoPorPoder?.judicial || 0, color: '#3B82F6' }
-            ].filter(d => d.value > 0);
+            : monitorSection === 'cuautla'
+                ? [
+                    { name: 'Cuautla', value: stats.conteoPorCategoria?.cuautla || 0, color: '#F59E0B' },
+                    { name: 'Zona Oriente', value: stats.conteoPorCategoria?.zona_oriente || 0, color: '#10B981' },
+                    { name: 'Medios Locales', value: stats.conteoPorCategoria?.medios_locales || 0, color: '#3B82F6' },
+                    { name: 'Seguridad', value: stats.conteoPorCategoria?.seguridad || 0, color: '#EF4444' },
+                    { name: 'Política Local', value: stats.conteoPorCategoria?.politica_local || 0, color: '#8B5CF6' }
+                ].filter(d => d.value > 0)
+                : [
+                    { name: 'Legislativo', value: stats.conteoPorPoder?.legislativo || 0, color: '#F59E0B' },
+                    { name: 'Gobierno', value: stats.conteoPorPoder?.gobierno || 0, color: '#10B981' },
+                    { name: 'Judicial', value: stats.conteoPorPoder?.judicial || 0, color: '#3B82F6' }
+                ].filter(d => d.value > 0);
 
         return (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -1002,7 +1034,9 @@ function App() {
                             <div className="space-y-4">
                                 {(monitorSection === 'medios'
                                     ? ['MORELOS']
-                                    : ['DEFAULT', 'LEGISLATIVO', 'EJECUTIVO', 'JUDICIAL']
+                                    : monitorSection === 'cuautla'
+                                        ? ['CUAUTLA']
+                                        : ['DEFAULT', 'LEGISLATIVO', 'EJECUTIVO', 'JUDICIAL']
                                 ).map(channel => {
                                     const hasToken = !!telegramConfig[`TELEGRAM_TOKEN_${channel}`];
                                     const hasChat = !!telegramConfig[`TELEGRAM_CHAT_ID_${channel}`];
@@ -1249,8 +1283,8 @@ function App() {
                         <div>
                             <h2 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight">
                                 {!monitorSection && 'Selecciona una Sección'}
-                                {monitorSection && activeTab === 'dashboard' && (monitorSection === 'medios' ? '📰 Resumen Medios' : '🏛️ Resumen Poderes')}
-                                {monitorSection && activeTab === 'search' && (filterMode ? 'Resultados de Búsqueda' : (monitorSection === 'medios' ? '📰 Feed Medios' : '🏛️ Feeds en Vivo'))}
+                                {monitorSection && activeTab === 'dashboard' && (monitorSection === 'medios' ? '📰 Resumen Medios' : monitorSection === 'cuautla' ? '📍 Resumen Cuautla' : '🏛️ Resumen Poderes')}
+                                {monitorSection && activeTab === 'search' && (filterMode ? 'Resultados de Búsqueda' : (monitorSection === 'medios' ? '📰 Feed Medios' : monitorSection === 'cuautla' ? '📍 Feed Cuautla' : '🏛️ Feeds en Vivo'))}
                                 {monitorSection && activeTab === 'ai' && 'Chat Inteligente (IA)'}
                                 {monitorSection && activeTab === 'config' && 'Centro de Configuración'}
                             </h2>

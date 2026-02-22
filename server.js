@@ -23,6 +23,7 @@ const SECRETS_FILE = path.join(__dirname, 'secrets.json');
 const PM2_LOG_FILE = '/root/.pm2/logs/monitor-x-v2-out.log';
 const FACEBOOK_PAGES_FILE = path.join(__dirname, 'facebook-pages.json'); // New config file para FB
 const KEYWORDS_MEDIOS_FILE = path.join(__dirname, 'keywords-medios.json');
+const KEYWORDS_CUAUTLA_FILE = path.join(__dirname, 'keywords-cuautla.json');
 
 // ====== HELPERS ======
 
@@ -39,6 +40,11 @@ function loadKeywords() {
 function loadMediosKeywords() {
     if (!fs.existsSync(KEYWORDS_MEDIOS_FILE)) return { categorias: {} };
     return JSON.parse(fs.readFileSync(KEYWORDS_MEDIOS_FILE, 'utf8'));
+}
+
+function loadCuautlaKeywords() {
+    if (!fs.existsSync(KEYWORDS_CUAUTLA_FILE)) return { categorias: {} };
+    return JSON.parse(fs.readFileSync(KEYWORDS_CUAUTLA_FILE, 'utf8'));
 }
 
 // Clasificar un tweet por categoría de medios
@@ -563,6 +569,103 @@ app.post('/api/config/keywords-medios', (req, res) => {
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
+});
+
+// ====== ENDPOINTS: Cuautla y Zona Oriente ======
+app.get('/api/stats/cuautla', (req, res) => {
+    try {
+        const allTweets = loadTweets();
+        const cuautlaKw = loadCuautlaKeywords();
+        const SKIP = ['migrated', 'desconocido', '@migrated', '@desconocido'];
+        const allFiltered = allTweets.filter(t => !SKIP.includes(t.handle) && t.text !== 'migrated' && t.name !== 'migrated');
+        const tweets = allFiltered.filter(t => matchesMediosKeywords(t.text, t.handle, cuautlaKw));
+
+        if (tweets.length === 0) {
+            return res.json({ totalTweets: 0, totalMedios: 0, topMedios: [], conteoPorCategoria: {}, palabrasClaveTop: [], horasMasActivas: [] });
+        }
+
+        const handleCount = {};
+        const handleNames = {};
+        const handleAvatars = {};
+        for (const t of tweets) {
+            if (!t.handle) continue;
+            const h = t.handle.replace('@', '');
+            if (!h) continue;
+            handleCount[h] = (handleCount[h] || 0) + 1;
+            if (t.name) handleNames[h] = t.name;
+            if (t.profileImage && !handleAvatars[h]) handleAvatars[h] = t.profileImage;
+        }
+        const topMedios = Object.entries(handleCount).sort((a, b) => b[1] - a[1]).slice(0, 10)
+            .map(([handle, count]) => ({ handle: '@' + handle, nombre: handleNames[handle] || handle, tweets: count, profileImage: handleAvatars[handle] || null }));
+
+        const conteoPorCategoria = {};
+        for (const cat of Object.keys(cuautlaKw.categorias || {})) conteoPorCategoria[cat] = 0;
+        for (const t of tweets) {
+            const clf = clasificarPorMedios(t.text, t.handle, cuautlaKw);
+            for (const [cat, matched] of Object.entries(clf)) { if (matched) conteoPorCategoria[cat]++; }
+        }
+
+        const allKws = [];
+        for (const catPalabras of Object.values(cuautlaKw.categorias || {})) { if (Array.isArray(catPalabras)) allKws.push(...catPalabras); }
+        const searchableKws = allKws.filter(k => !k.startsWith('@') && k.length > 3);
+        const kwCount = {};
+        for (const t of tweets) {
+            const text = (t.text || '').toLowerCase();
+            for (const kw of searchableKws) { if (text.includes(kw.toLowerCase())) kwCount[kw] = (kwCount[kw] || 0) + 1; }
+        }
+        const palabrasClaveTop = Object.entries(kwCount).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([palabra, count]) => ({ palabra, count }));
+
+        const horaCount = {};
+        for (const t of tweets) { if (t.date) { const hora = new Date(t.date).getHours(); horaCount[hora + ':00'] = (horaCount[hora + ':00'] || 0) + 1; } }
+        const horasMasActivas = Object.entries(horaCount).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([hora, count]) => ({ hora, count }));
+
+        const mediosUnicos = new Set(tweets.map(t => (t.handle || '').replace('@', '')));
+        res.json({ totalTweets: tweets.length, totalMedios: mediosUnicos.size, topMedios, conteoPorCategoria, palabrasClaveTop, horasMasActivas, fecha: new Date().toISOString() });
+    } catch (e) {
+        console.error('Error en /api/stats/cuautla:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/tweets/cuautla', (req, res) => {
+    try {
+        if (fs.existsSync(TWEETS_FILE)) {
+            let data = JSON.parse(fs.readFileSync(TWEETS_FILE, 'utf8'));
+            const cuautlaKw = loadCuautlaKeywords();
+            const SKIP = ['migrated', 'desconocido', '@migrated', '@desconocido'];
+            data = data.filter(t => !SKIP.includes(t.handle) && t.text !== 'migrated');
+            data = data.filter(t => matchesMediosKeywords(t.text, t.handle, cuautlaKw));
+            if (req.query.handle) { const sh = req.query.handle.toLowerCase().replace('@', ''); data = data.filter(t => (t.handle || '').toLowerCase().replace('@', '').includes(sh)); }
+            if (req.query.keyword) { const sk = req.query.keyword.toLowerCase(); data = data.filter(t => (t.text || '').toLowerCase().includes(sk)); }
+            const limit = parseInt(req.query.limit) || 100;
+            res.json([...data].reverse().slice(0, limit));
+        } else { res.json([]); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/config/cuautla', (req, res) => {
+    try {
+        if (fs.existsSync(KEYWORDS_CUAUTLA_FILE)) {
+            const config = JSON.parse(fs.readFileSync(KEYWORDS_CUAUTLA_FILE, 'utf8'));
+            let total = 0;
+            if (config.categorias) { Object.values(config.categorias).forEach(arr => total += arr.length); }
+            res.json({ categorias: config.categorias, totalKeywords: total });
+        } else { res.json({ categorias: {}, totalKeywords: 0 }); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/config/keywords-cuautla', (req, res) => {
+    try {
+        const { categorias } = req.body;
+        if (!categorias) return res.status(400).json({ error: 'Falta objeto categorias' });
+        const existing = fs.existsSync(KEYWORDS_CUAUTLA_FILE) ? JSON.parse(fs.readFileSync(KEYWORDS_CUAUTLA_FILE, 'utf8')) : {};
+        const newConfig = { ...existing, categorias };
+        fs.writeFileSync(KEYWORDS_CUAUTLA_FILE, JSON.stringify(newConfig, null, 2));
+        let total = 0;
+        Object.values(categorias).forEach(arr => total += arr.length);
+        console.log(`📝 Keywords Cuautla actualizadas. Total: ${total}`);
+        res.json({ success: true, totalKeywords: total });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ====== ENDPOINT: Configuración (Telegram) ======

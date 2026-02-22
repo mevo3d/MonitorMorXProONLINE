@@ -1,0 +1,67 @@
+{
+    "categorias": {
+        "cuautla": [
+            "Cuautla",
+            "cuautlense",
+            "ayuntamiento de Cuautla",
+            "presidente municipal Cuautla",
+            "centro de Cuautla",
+            "mercado de Cuautla",
+            "hospital de Cuautla",
+            "IMSS Cuautla",
+            "@AyuntCuautla"
+        ],
+        "zona_oriente": [
+            "Yautepec",
+            "Oaxtepec",
+            "Cocoyoc",
+            "Tepoztlán",
+            "Tlayacapan",
+            "Jonacatepec",
+            "Axochiapan",
+            "Jantetelco",
+            "Ocuituco",
+            "Tetela del Volcán",
+            "Zacualpan",
+            "Temoac",
+            "Atlatlahucan",
+            "Yecapixtla",
+            "zona oriente",
+            "oriente de Morelos"
+        ],
+        "medios_locales": [
+            "@DiariodeMorelos",
+            "@ElSolCuernavaca",
+            "@ElRegionalDelSur",
+            "@ldehoymx",
+            "@FormulaMorelos",
+            "@LiniadeCalienteMx",
+            "@AztecaMorelos",
+            "@DigiNoticiasBot",
+            "Digital Noticias",
+            "Diario de Morelos",
+            "El Regional del Sur"
+        ],
+        "seguridad": [
+            "inseguridad Cuautla",
+            "robo Cuautla",
+            "accidente Cuautla",
+            "operativo Cuautla",
+            "policía Cuautla",
+            "balacera zona oriente",
+            "detenido Cuautla",
+            "tráfico Cuautla"
+        ],
+        "politica_local": [
+            "diputado Cuautla",
+            "alcalde Cuautla",
+            "cabildo Cuautla",
+            "regidor Cuautla",
+            "gobierno municipal Cuautla",
+            "elecciones Cuautla",
+            "Morena Cuautla",
+            "PAN Cuautla",
+            "PRI Cuautla"
+        ]
+    }
+}
