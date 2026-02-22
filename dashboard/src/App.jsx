@@ -574,8 +574,12 @@ function App() {
                                     key={idx}
                                     className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all group"
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs flex-shrink-0 relative">
-                                        {pag.pagina.substring(0, 2).toUpperCase()}
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs flex-shrink-0 relative overflow-hidden">
+                                        {pag.profileImage ? (
+                                            <img src={pag.profileImage} alt={pag.pagina} className="w-full h-full object-cover rounded-full" />
+                                        ) : (
+                                            pag.pagina.substring(0, 2).toUpperCase()
+                                        )}
                                         <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center text-[8px] font-bold text-slate-600 shadow-sm border border-slate-200">{idx + 1}</span>
                                     </div>
                                     <div className="flex-1 min-w-0">

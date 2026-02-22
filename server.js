@@ -682,14 +682,16 @@ app.get('/api/stats/facebook', (req, res) => {
             return res.json({ totalPosts: 0, totalPaginas: 0, topPaginas: [], postsPorDia: [], postsPorTipo: {}, ultimaActualizacion: null });
         }
 
-        // Top Páginas
-        const handleCount = {};
+        // Top Páginas (con profileImage)
+        const handleData = {};
         for (const p of posts) {
             const h = p.handle || p.name || 'desconocido';
-            handleCount[h] = (handleCount[h] || 0) + 1;
+            if (!handleData[h]) handleData[h] = { count: 0, profileImage: '' };
+            handleData[h].count++;
+            if (p.profileImage && !handleData[h].profileImage) handleData[h].profileImage = p.profileImage;
         }
-        const topPaginas = Object.entries(handleCount).sort((a, b) => b[1] - a[1]).slice(0, 10)
-            .map(([pagina, count]) => ({ pagina, posts: count }));
+        const topPaginas = Object.entries(handleData).sort((a, b) => b[1].count - a[1].count).slice(0, 10)
+            .map(([pagina, data]) => ({ pagina, posts: data.count, profileImage: data.profileImage }));
 
         // Posts por día (últimos 7 días)
         const postsPorDia = {};

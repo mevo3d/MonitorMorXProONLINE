@@ -688,7 +688,8 @@ async function iniciarMonitor() {
                             url: post.url,
                             type: post.isVideo ? 'video' : (post.media && post.media.length > 0 ? 'photo' : 'text'),
                             mediaUrls: post.media || [],
-                            source: 'facebook'
+                            source: 'facebook',
+                            profileImage: post.profileImage || ''
                         });
                         fbSeenIds.add(post.id);
                         fbNewCount++;
