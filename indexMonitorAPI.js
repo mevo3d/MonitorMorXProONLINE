@@ -30,6 +30,7 @@ const RETTIWT_API_KEY = process.env.RETTIWT_API_KEY;
 const KEYWORDS_FILE = 'keywords.json';
 const KEYWORDS_MEDIOS_FILE = path.join(__dirname, 'keywords-medios.json');
 const SEEN_FILE = path.join(__dirname, 'tweets-seen.json');
+const FB_SEEN_FILE = path.join(__dirname, 'facebook-seen.json');
 const CHECK_INTERVAL_MS = 60000; // 60 segundos entre ciclos
 const MAX_CRASH_RETRIES = 50;
 
@@ -649,15 +650,39 @@ async function iniciarMonitor() {
                 console.error('Error scrapeando Twitter:', e.message);
             }
 
-            // 2. Scraping de Facebook (Meta)
+            // 2. Scraping de Facebook (Meta) — guardado separado
             try {
                 const fbPosts = await scrapeFacebookPages();
-                if (fbPosts && fbPosts.length > 0) nuevosItems.push(...fbPosts);
+                if (fbPosts && fbPosts.length > 0) {
+                    // Guardar FB posts en su propio archivo JSON
+                    const fbHistory = fs.existsSync(FB_SEEN_FILE) ? JSON.parse(fs.readFileSync(FB_SEEN_FILE)) : [];
+                    const fbSeenIds = new Set(fbHistory.map(p => p.id));
+                    let fbNewCount = 0;
+                    for (const post of fbPosts) {
+                        if (fbSeenIds.has(post.id)) continue;
+                        fbHistory.push({
+                            id: post.id,
+                            handle: post.handle,
+                            name: post.name,
+                            text: post.text,
+                            date: new Date().toISOString(),
+                            url: post.url,
+                            type: post.isVideo ? 'video' : (post.media && post.media.length > 0 ? 'photo' : 'text'),
+                            mediaUrls: post.media || [],
+                            source: 'facebook'
+                        });
+                        fbSeenIds.add(post.id);
+                        fbNewCount++;
+                    }
+                    if (fbHistory.length > 5000) fbHistory.splice(0, fbHistory.length - 5000);
+                    fs.writeFileSync(FB_SEEN_FILE, JSON.stringify(fbHistory, null, 2));
+                    if (fbNewCount > 0) console.log(`📘 ${fbNewCount} nuevos posts de Facebook guardados (total: ${fbHistory.length})`);
+                }
             } catch (e) {
                 console.error('Error scrapeando Facebook:', e.message);
             }
 
-            // 3. Procesamiento Unificado
+            // 3. Procesamiento Unificado (solo Twitter)
             if (nuevosItems.length > 0) {
                 await procesarTweets(nuevosItems);
             }

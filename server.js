@@ -24,6 +24,7 @@ const PM2_LOG_FILE = '/root/.pm2/logs/monitor-x-v2-out.log';
 const FACEBOOK_PAGES_FILE = path.join(__dirname, 'facebook-pages.json'); // New config file para FB
 const KEYWORDS_MEDIOS_FILE = path.join(__dirname, 'keywords-medios.json');
 const KEYWORDS_CUAUTLA_FILE = path.join(__dirname, 'keywords-cuautla.json');
+const FB_SEEN_FILE = path.join(__dirname, 'facebook-seen.json');
 
 // ====== HELPERS ======
 
@@ -45,6 +46,11 @@ function loadMediosKeywords() {
 function loadCuautlaKeywords() {
     if (!fs.existsSync(KEYWORDS_CUAUTLA_FILE)) return { categorias: {} };
     return JSON.parse(fs.readFileSync(KEYWORDS_CUAUTLA_FILE, 'utf8'));
+}
+
+function loadFbPosts() {
+    if (!fs.existsSync(FB_SEEN_FILE)) return [];
+    try { return JSON.parse(fs.readFileSync(FB_SEEN_FILE, 'utf8')); } catch (e) { return []; }
 }
 
 // Clasificar un tweet por categoría de medios
@@ -665,6 +671,74 @@ app.post('/api/config/keywords-cuautla', (req, res) => {
         Object.values(categorias).forEach(arr => total += arr.length);
         console.log(`📝 Keywords Cuautla actualizadas. Total: ${total}`);
         res.json({ success: true, totalKeywords: total });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ====== ENDPOINTS: Facebook ======
+app.get('/api/stats/facebook', (req, res) => {
+    try {
+        const posts = loadFbPosts();
+        if (posts.length === 0) {
+            return res.json({ totalPosts: 0, totalPaginas: 0, topPaginas: [], postsPorDia: [], postsPorTipo: {}, ultimaActualizacion: null });
+        }
+
+        // Top Páginas
+        const handleCount = {};
+        for (const p of posts) {
+            const h = p.handle || p.name || 'desconocido';
+            handleCount[h] = (handleCount[h] || 0) + 1;
+        }
+        const topPaginas = Object.entries(handleCount).sort((a, b) => b[1] - a[1]).slice(0, 10)
+            .map(([pagina, count]) => ({ pagina, posts: count }));
+
+        // Posts por día (últimos 7 días)
+        const postsPorDia = {};
+        for (const p of posts) {
+            if (p.date) {
+                const day = dayjs(p.date).format('YYYY-MM-DD');
+                postsPorDia[day] = (postsPorDia[day] || 0) + 1;
+            }
+        }
+        const diasOrdenados = Object.entries(postsPorDia).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 7)
+            .map(([dia, count]) => ({ dia, count })).reverse();
+
+        // Posts por tipo
+        const postsPorTipo = { text: 0, photo: 0, video: 0 };
+        for (const p of posts) {
+            const tipo = p.type || 'text';
+            postsPorTipo[tipo] = (postsPorTipo[tipo] || 0) + 1;
+        }
+
+        const paginasUnicas = new Set(posts.map(p => p.handle || p.name));
+        const ultimoPost = posts[posts.length - 1];
+
+        res.json({
+            totalPosts: posts.length,
+            totalPaginas: paginasUnicas.size,
+            topPaginas,
+            postsPorDia: diasOrdenados,
+            postsPorTipo,
+            ultimaActualizacion: ultimoPost?.date || null
+        });
+    } catch (e) {
+        console.error('Error en /api/stats/facebook:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/posts/facebook', (req, res) => {
+    try {
+        let data = loadFbPosts();
+        if (req.query.pagina) {
+            const search = req.query.pagina.toLowerCase();
+            data = data.filter(p => ((p.handle || p.name || '')).toLowerCase().includes(search));
+        }
+        if (req.query.keyword) {
+            const kw = req.query.keyword.toLowerCase();
+            data = data.filter(p => (p.text || '').toLowerCase().includes(kw));
+        }
+        const limit = parseInt(req.query.limit) || 100;
+        res.json([...data].reverse().slice(0, limit));
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
