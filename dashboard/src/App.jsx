@@ -1221,7 +1221,7 @@ function App() {
                 />
             )}
 
-            <aside className={`fixed md:static inset-y-0 left-0 w-72 bg-white border-r border-slate-200 flex-col flex-shrink-0 z-50 shadow-xl shadow-slate-200/50 transform transition-transform duration-300 md:translate-x-0 flex ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            {monitorSection && <aside className={`fixed md:static inset-y-0 left-0 w-72 bg-white border-r border-slate-200 flex-col flex-shrink-0 z-50 shadow-xl shadow-slate-200/50 transform transition-transform duration-300 md:translate-x-0 flex ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="p-8">
                     <div className="flex justify-between items-center mb-6 md:hidden">
                         <button onClick={() => setIsSidebarOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 bg-slate-50 rounded-xl">
@@ -1273,7 +1273,7 @@ function App() {
                         </div>
                     </div>
                 </div>
-            </aside>
+            </aside>}
 
             <main className="flex-1 overflow-y-auto h-screen flex flex-col relative z-10 w-full overflow-x-hidden">
                 <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 py-4 md:py-5 flex justify-between items-center sticky top-0 z-30">
