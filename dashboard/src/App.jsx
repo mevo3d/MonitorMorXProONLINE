@@ -70,6 +70,7 @@ function App() {
     const [feedTab, setFeedTab] = useState('twitter');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [monitorSection, setMonitorSection] = useState(null); // null = lobby, 'poderes', 'medios'
+    const [fbStats, setFbStats] = useState(null);
 
     useEffect(() => {
         fetchStats();
@@ -104,8 +105,12 @@ function App() {
     const fetchStats = async () => {
         try {
             const endpoint = monitorSection === 'medios' ? '/api/stats/medios' : monitorSection === 'cuautla' ? '/api/stats/cuautla' : '/api/stats';
-            const res = await axios.get(endpoint);
+            const [res, fbRes] = await Promise.all([
+                axios.get(endpoint),
+                axios.get('/api/stats/facebook').catch(() => ({ data: null }))
+            ]);
             setStats(res.data);
+            if (fbRes.data) setFbStats(fbRes.data);
             setLoading(false);
         } catch (error) {
             console.error("Error fetching stats:", error);
@@ -535,6 +540,38 @@ function App() {
                         </div>
                     </div>
                 </div>
+
+                {/* Top 10 Facebook Pages */}
+                {fbStats && fbStats.topPaginas && fbStats.topPaginas.length > 0 && (
+                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+                        <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+                            <span className="w-1 h-6 bg-blue-500 rounded-full"></span>
+                            📘 Top 10 Páginas Facebook
+                        </h3>
+                        <p className="text-xs text-slate-500 mb-4">Posts capturados por página | Total: {fbStats.totalPosts} posts de {fbStats.totalPaginas} páginas</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {fbStats.topPaginas.map((pag, idx) => (
+                                <div
+                                    key={idx}
+                                    className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all group"
+                                >
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs flex-shrink-0 relative">
+                                        {pag.pagina.substring(0, 2).toUpperCase()}
+                                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center text-[8px] font-bold text-slate-600 shadow-sm border border-slate-200">{idx + 1}</span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-slate-800 text-sm truncate">{pag.pagina}</p>
+                                        <p className="text-xs text-slate-400">Facebook</p>
+                                    </div>
+                                    <div className="text-right flex-shrink-0">
+                                        <p className="text-lg font-bold text-blue-600">{pag.posts}</p>
+                                        <p className="text-[10px] text-slate-400">posts</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Palabras Clave */}
                 <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
