@@ -18,7 +18,11 @@ const delay = (ms) => new Promise(res => setTimeout(res, ms));
 const loadFacebookConfig = () => {
     if (!fs.existsSync(FACEBOOK_PAGES_FILE)) return { pages: [], cookies: [] };
     try {
-        return JSON.parse(fs.readFileSync(FACEBOOK_PAGES_FILE, 'utf8'));
+        const data = JSON.parse(fs.readFileSync(FACEBOOK_PAGES_FILE, 'utf8'));
+        return {
+            pages: Array.isArray(data.pages) ? data.pages : [],
+            cookies: Array.isArray(data.cookies) ? data.cookies : []
+        };
     } catch (e) {
         console.error('Error leyendo config FB:', e.message);
         return { pages: [], cookies: [] };

@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({ path: '/root/MonitorMorXPro/.env', override: true });
 
 import { chromium } from 'playwright';
 import fs from 'fs';
@@ -12,6 +12,10 @@ import https from 'https';
 import { exec } from 'child_process';
 import util from 'util';
 import { scrapeFacebookPages } from './facebook.js';
+import { scrapeDailyPress } from './press-scraper.js';
+import { generateSynthesis } from './synthesis-generator.js';
+import { scrapeMananera } from './elmedio-scraper.js';
+import { processAndSendMananera } from './mananera-generator.js';
 
 // === IMPORTACIÓN DE MÓDULOS LEGACY ===
 import EstadisticasMedios from './EstadisticasMedios.js';
@@ -786,8 +790,96 @@ async function iniciarMonitor() {
 }
 
 // ====== SCHEDULER (Interval Independent) ======
+let pressSynthesisDoneToday = null;
+
+function isWithinTimeRange(now, inicioStr, finStr) {
+    if (!inicioStr || !finStr) return false;
+    const [hInicio, mInicio] = inicioStr.split(':').map(Number);
+    const [hFin, mFin] = finStr.split(':').map(Number);
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const startMins = hInicio * 60 + mInicio;
+    const endMins = hFin * 60 + mFin;
+    return currentMins >= startMins && currentMins <= endMins;
+}
+
+function getSintesisHorarios() {
+    try {
+        const SINTESIS_CONFIG_FILE = path.join(__dirname, 'sintesis_keywords.json');
+        if (fs.existsSync(SINTESIS_CONFIG_FILE)) {
+            const data = fs.readFileSync(SINTESIS_CONFIG_FILE, 'utf8');
+            const parsed = JSON.parse(data);
+            if (parsed.horarios) return parsed.horarios;
+        }
+    } catch (e) { }
+    // Default fallback
+    return {
+        sintesis: { inicio: "06:00", fin: "10:00" },
+        mananera: { inicio: "11:30", fin: "14:30" }
+    };
+}
+
 setInterval(() => {
     const now = new Date();
+    const todayStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+    const horarios = getSintesisHorarios();
+
+    // Entre horarios programados: Intentar Síntesis de Prensa cada 15 minutos (aprox)
+    const withinSintesisHours = isWithinTimeRange(now, horarios.sintesis.inicio, horarios.sintesis.fin);
+    if (withinSintesisHours && (now.getMinutes() % 15 < 2) && pressSynthesisDoneToday !== todayStr) {
+        console.log(`🗞️ Intentando Síntesis de Prensa (${now.getHours()}:${now.getMinutes()})...`);
+        scrapeDailyPress()
+            .then(ExtractedData => {
+                if (ExtractedData) {
+                    // Calculamos matematicamente 15 minutos antes del final como hard cutoff
+                    const [hFin, mFin] = horarios.sintesis.fin.split(':').map(Number);
+                    const endMins = hFin * 60 + mFin;
+                    const currentMins = now.getHours() * 60 + now.getMinutes();
+                    const isHardCutoff = currentMins >= (endMins - 15);
+                    if (ExtractedData.isComplete || ExtractedData.pendingCount <= 1 || isHardCutoff) {
+                        pressSynthesisDoneToday = todayStr;
+                        console.log('✅ Medios listos o límite de tiempo alcanzado. Generando...');
+                        return generateSynthesis();
+                    } else {
+                        console.log(`⏳ Faltan ${ExtractedData.pendingCount} medios. Reintentando en 15 mins.`);
+                        return null;
+                    }
+                }
+            })
+            .then(sintesisFinal => {
+                if (sintesisFinal && bot) {
+                    // Split the synthesis into parts if it exceeds Telegram's limit (Telegram limit is 4096)
+                    const partes = sintesisFinal.split('===');
+                    partes.forEach((parte, index) => {
+                        if (parte.trim().length > 0) {
+                            setTimeout(() => {
+                                bot.sendMessage(TELEGRAM_CHAT_ID, parte.trim(), { parse_mode: 'Markdown' }).catch(err => {
+                                    console.error(`💥 Error enviando parte ${index + 1} de la síntesis: ${err.message}`);
+                                });
+                            }, index * 1000); // 1 sec delay between messages
+                        }
+                    });
+                }
+            })
+            .catch(e => console.error('💥 Error global en Síntesis de Prensa:', e.message));
+    }
+
+    // Entre horario programado: Intentar La Mañanera cada 20 minutos
+    const mananeraDoneKey = `mananera_${todayStr}`;
+    const withinMananeraHours = isWithinTimeRange(now, horarios.mananera.inicio, horarios.mananera.fin);
+    if (withinMananeraHours && (now.getMinutes() % 20 < 2) && pressSynthesisDoneToday !== mananeraDoneKey) {
+        console.log(`🇲🇽 Intentando escanear La Mañanera del Pueblo (${now.getHours()}:${now.getMinutes()})...`);
+        scrapeMananera()
+            .then(textoExtraido => {
+                if (textoExtraido && textoExtraido.length > 100) {
+                    console.log('✅ PDF de La Mañanera localizado. Procesando con IA...');
+                    pressSynthesisDoneToday = mananeraDoneKey; // Prevent further runs today
+                    return processAndSendMananera(textoExtraido);
+                } else {
+                    console.log('⏳ Aún no suben el PDF de La Mañanera. Reintentando en 20 mins.');
+                }
+            })
+            .catch(e => console.error('💥 Error global en La Mañanera:', e.message));
+    }
 
     // Diario 9:00 PM: Reporte Diario
     if (now.getHours() === 21 && now.getMinutes() < 2) {

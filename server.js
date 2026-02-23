@@ -5,6 +5,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import dayjs from 'dayjs';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '/root/MonitorMorXPro/.env', override: true });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -25,6 +28,7 @@ const FACEBOOK_PAGES_FILE = path.join(__dirname, 'facebook-pages.json'); // New 
 const KEYWORDS_MEDIOS_FILE = path.join(__dirname, 'keywords-medios.json');
 const KEYWORDS_CUAUTLA_FILE = path.join(__dirname, 'keywords-cuautla.json');
 const FB_SEEN_FILE = path.join(__dirname, 'facebook-seen.json');
+const SINTESIS_CONFIG_FILE = path.join(__dirname, 'sintesis_keywords.json');
 
 // ====== HELPERS ======
 
@@ -231,6 +235,127 @@ app.get('/api/stats', (req, res) => {
         });
     } catch (e) {
         console.error('Error en /api/stats:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ====== ENDPOINT: Síntesis de Prensa ======
+app.get('/api/synthesis/today', (req, res) => {
+    try {
+        const todayStr = dayjs().format('YYYYMMDD');
+        const synthesisFile = path.join(__dirname, 'downloads', 'sintesis', todayStr, 'sintesis_final.txt');
+        if (fs.existsSync(synthesisFile)) {
+            const content = fs.readFileSync(synthesisFile, 'utf8');
+            res.json({ success: true, content, date: dayjs().toISOString() });
+        } else {
+            res.json({ success: false, message: 'La síntesis de hoy aún no ha sido generada.' });
+        }
+    } catch (e) {
+        console.error('Error en /api/synthesis/today:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/synthesis/download-pdf', async (req, res) => {
+    try {
+        const todayStr = dayjs().format('YYYY-MM-DD');
+        const pdfFile = path.join(__dirname, 'downloads', 'sintesis', todayStr.replace(/-/g, ''), `SINTESIS_PRENSA_${todayStr.replace(/-/g, '')}.pdf`);
+
+        if (fs.existsSync(pdfFile)) {
+            res.download(pdfFile);
+        } else {
+            // Generar PDF al vuelo si no existe
+            const builder = await import('./services/pdf-builder.js');
+            const newPdfPath = await builder.buildPdf(todayStr);
+            if (newPdfPath && fs.existsSync(newPdfPath)) {
+                res.download(newPdfPath);
+            } else {
+                res.status(404).json({ error: 'Primero debes generar la síntesis web antes de poder descargar el PDF.' });
+            }
+        }
+    } catch (e) {
+        console.error('Error enviando PDF:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/synthesis/status', (req, res) => {
+    try {
+        const todayStr = dayjs().format('YYYYMMDD');
+        const rawFile = path.join(__dirname, 'downloads', 'sintesis', todayStr, 'raw_extraction.json');
+
+        let status = { locales: {}, nacionales: {} };
+        if (fs.existsSync(rawFile)) {
+            const results = JSON.parse(fs.readFileSync(rawFile, 'utf8'));
+            // Map true/false based on if text is populated
+            for (const key of Object.keys(results.locales || {})) {
+                status.locales[key] = !!results.locales[key];
+            }
+            for (const key of Object.keys(results.nacionales || {})) {
+                status.nacionales[key] = !!results.nacionales[key];
+            }
+        }
+        res.json({ success: true, status });
+    } catch (e) {
+        console.error('Error en /api/synthesis/status:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/synthesis/generate', async (req, res) => {
+    try {
+        const scraper = await import('./press-scraper.js');
+        const generator = await import('./synthesis-generator.js');
+        const extracted = await scraper.scrapeDailyPress();
+        if (extracted.isComplete || extracted.pendingCount < 5) {
+            const finalStr = await generator.generateSynthesis();
+            res.json({ success: true, content: finalStr, status: extracted });
+        } else {
+            res.json({ success: false, message: `Aún faltan muchos medios (${extracted.pendingCount} pendientes). Intenta más tarde.`, status: extracted });
+        }
+    } catch (e) {
+        console.error('Error generando síntesis on-demand:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/synthesis/config', (req, res) => {
+    try {
+        if (!fs.existsSync(SINTESIS_CONFIG_FILE)) {
+            res.json({
+                columnistas_destacados: [],
+                temas_clave: [],
+                medios_requeridos: {},
+                horarios: {
+                    sintesis: { inicio: "06:00", fin: "10:00" },
+                    mananera: { inicio: "11:30", fin: "14:30" }
+                }
+            });
+            return;
+        }
+        const data = fs.readFileSync(SINTESIS_CONFIG_FILE, 'utf8');
+        const parsed = JSON.parse(data);
+
+        // Ensure horarios exists for backward compatibility
+        if (!parsed.horarios) {
+            parsed.horarios = {
+                sintesis: { inicio: "06:00", fin: "10:00" },
+                mananera: { inicio: "11:30", fin: "14:30" }
+            };
+        }
+
+        res.json(parsed);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/synthesis/config', (req, res) => {
+    try {
+        const config = req.body;
+        fs.writeFileSync(SINTESIS_CONFIG_FILE, JSON.stringify(config, null, 2));
+        res.json({ success: true });
+    } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
@@ -507,12 +632,24 @@ app.get('/api/config/facebook', (req, res) => {
 app.post('/api/config/facebook', (req, res) => {
     try {
         const { pages, cookies } = req.body;
-        if (!pages || !Array.isArray(pages)) return res.status(400).json({ error: 'Formato de pages inválido' });
 
-        const newConfig = { pages, cookies: cookies || [] };
+        let existingConfig = { pages: [], cookies: [] };
+        if (fs.existsSync(FACEBOOK_PAGES_FILE)) {
+            try {
+                const data = JSON.parse(fs.readFileSync(FACEBOOK_PAGES_FILE, 'utf8'));
+                existingConfig.pages = Array.isArray(data.pages) ? data.pages : [];
+                existingConfig.cookies = Array.isArray(data.cookies) ? data.cookies : [];
+            } catch (e) { }
+        }
+
+        const newConfig = {
+            pages: Array.isArray(pages) ? pages : existingConfig.pages,
+            cookies: Array.isArray(cookies) ? cookies : existingConfig.cookies
+        };
+
         fs.writeFileSync(FACEBOOK_PAGES_FILE, JSON.stringify(newConfig, null, 2));
 
-        console.log(`📝 Facebook Pages actualizadas. Total páginas: ${pages.length}`);
+        console.log(`📝 Facebook Config guardada. Páginas: ${newConfig.pages.length}, Cookies: ${newConfig.cookies.length}`);
         res.json({ success: true, message: 'Configuración guardada' });
     } catch (e) {
         res.status(500).json({ error: e.message });

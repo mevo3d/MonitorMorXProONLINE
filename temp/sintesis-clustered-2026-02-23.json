@@ -1,0 +1,70 @@
+{
+  "fechas": "SÍNTESIS DE PRENSA 27 DE OCTUBRE 2023",
+  "CONGRESO": [],
+  "GOBIERNO": [
+    {
+      "medios": "LA UNIÓN DE MORELOS",
+      "titulo": "Continuará programa 'Cosecha de Lluvia' en 2026",
+      "resumen": "Se busca garantizar el agua en las escuelas del estado: IEBEM. Las autoridades educativas se preparan para la temporada de estiaje, por lo que confían en los resultados de los sistemas de 'Cosecha de Lluvia' en las escuelas que ya cuentan con el sistema, pero admiten que no existen bebederos de agua.",
+      "enlaces": [
+        "https://launion.com.mx/morelos/sociedad/noticias/289608-continuara-programa-cosecha-de-lluvia-en-2026.html"
+      ]
+    }
+  ],
+  "JUDICIAL_SEGURIDAD": [
+    {
+      "medios": "LA UNIÓN DE MORELOS",
+      "titulo": "Impacta a Morelos abatimiento de 'El Mencho'",
+      "resumen": "Horas después de la muerte del líder criminal, delincuentes incendiaron tiendas y al menos dos taxis en diversos municipios del estado; no reportaron heridos y habría dos arrestados. Al menos cinco sucursales de una tienda de conveniencia y dos taxis fueron incendiados en distintos municipios de Morelos.",
+      "enlaces": [
+        "https://launion.com.mx/morelos/justicia/noticias/289599-impacta-a-morelos-abatimiento-de-el-mencho.html"
+      ]
+    },
+    {
+      "medios": "LA UNIÓN DE MORELOS",
+      "titulo": "García Harfuch reporta 25 militares muertos tras abatir a 'El Mencho'",
+      "resumen": "El secretario de Seguridad y Protección Ciudadana, Omar García Harfuch, informó que 25 elementos de la Guardia Nacional murieron el domingo tras los hechos violentos registrados en distintos estados del país, luego de la muerte de Nemesio Oseguera Cervantes, alias 'El Mencho', líder del Cártel Jalisco Nueva Generación.",
+      "enlaces": [
+        "https://launion.com.mx/morelos/nacional/noticias/289617-garcia-harfuch-reporta-25-militares-muertos-tras-abatir-a-el-mencho.html"
+      ]
+    },
+    {
+      "medios": "LA UNIÓN DE MORELOS",
+      "titulo": "Sheinbaum reconoce a fuerzas armadas por operativo contra 'El Mencho'",
+      "resumen": "La presidenta Claudia Sheinbaum pidió a la ciudadanía mantener la calma, asegurando que la prioridad del gobierno es garantizar la paz, la seguridad y la normalidad en todo el país. Esto luego de los actos de violencia registrados ayer en diversas regiones de México por el Cártel Jalisco Nueva Generación.",
+      "enlaces": [
+        "https://launion.com.mx/morelos/nacional/noticias/289618-sheinbaum-reconoce-a-fuerzas-armadas-por-operativo-contra-el-mencho.html"
+      ]
+    }
+  ],
+  "MUNICIPIOS": [
+    {
+      "medios": "DIARIO DE MORELOS",
+      "titulo": "Jiutepec",
+      "resumen": "A casi tres años del incendio subterráneo en la ex mina de Tezontepec, habitantes de Jiutepec acudieron a la Secretaría de Gobierno del estado para exigir la expropiación inmediata del predio —de más de siete hectáreas—, su saneamiento integral y la declaratoria de contingencia ambiental en la zona.",
+      "enlaces": [
+        "https://www.diariodemorelos.com/noticias/tags/jiutepec"
+      ]
+    },
+    {
+      "medios": "DIARIO DE MORELOS",
+      "titulo": "Cuautla",
+      "resumen": "Un policía de Cuautla que presuntamente salía de su turno fue atacado a balazos en la comunidad de Anenecuilco, en Ayala, y perdió la vida al instante. El crimen se registró alrededor de las 07:30 horas en la calle San.",
+      "enlaces": [
+        "https://www.diariodemorelos.com/noticias/tags/cuautla"
+      ]
+    }
+  ],
+  "GENERAL": [
+    {
+      "medios": "DIARIO DE MORELOS",
+      "titulo": "Comunidad",
+      "resumen": "La delegación de Morelos concluyó su participación en el Nacional 'De la Calle a la Cancha', celebrado en San Luis Potosí, con actuaciones destacadas tanto en la rama Femenil como Varonil. El representativo Femenil avanzó hasta los Cuartos de Final.",
+      "enlaces": [
+        "https://www.diariodemorelos.com/noticias/en-vivo"
+      ]
+    }
+  ],
+  "NACIONAL": [],
+  "COLUMNAS": []
+}

@@ -4,7 +4,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 import {
-    LayoutDashboard, Search, Bot, Settings, RefreshCw, Radio, Twitter, Globe, Clock, MessageSquare, ChevronRight, Zap, ExternalLink, Play, Edit, Plus, X, Save, ArrowLeft, Download, Menu, Send, Newspaper, Building2, MapPin
+    LayoutDashboard, Search, Bot, Settings, RefreshCw, Radio, Twitter, Globe, Clock, MessageSquare, ChevronRight, Zap, ExternalLink, Play, Edit, Plus, X, Save, ArrowLeft, Download, Menu, Send, Newspaper, Building2, MapPin, FileText, Activity, CheckCircle
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -71,6 +71,10 @@ function App() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [monitorSection, setMonitorSection] = useState(null); // null = lobby, 'poderes', 'medios'
     const [fbStats, setFbStats] = useState(null);
+    const [synthesisData, setSynthesisData] = useState(null);
+    const [synthesisLoading, setSynthesisLoading] = useState(false);
+    const [sintesisConfig, setSintesisConfig] = useState(null);
+    const [synthesisStatus, setSynthesisStatus] = useState(null);
 
     useEffect(() => {
         fetchStats();
@@ -148,10 +152,77 @@ function App() {
 
     useEffect(() => {
         if (activeTab === 'config') {
-            fetchFacebookSettings();
-            fetchTelegramSettings();
+            if (monitorSection === 'sintesis') {
+                fetchSintesisConfig();
+            } else {
+                fetchFacebookSettings();
+                fetchTelegramSettings();
+            }
+        }
+        if (activeTab === 'synthesis') {
+            fetchSynthesis();
+            fetchSynthesisStatus();
         }
     }, [activeTab]);
+
+    const fetchSintesisConfig = async () => {
+        try {
+            const res = await axios.get('/api/synthesis/config');
+            const data = res.data;
+            if (!data.medios_adicionales) data.medios_adicionales = [];
+            setSintesisConfig(data);
+            setConfigTab('sintesis_keywords');
+        } catch (e) { console.error('Error fetching synthesis config', e); }
+    };
+
+    const saveSintesisConfig = async () => {
+        try {
+            await axios.post('/api/synthesis/config', sintesisConfig);
+            alert('Configuración de Síntesis guardada correctamente');
+        } catch (e) {
+            alert('Error guardando config de Síntesis: ' + e.message);
+        }
+    };
+
+    const fetchSynthesisStatus = async () => {
+        try {
+            const res = await axios.get('/api/synthesis/status');
+            if (res.data.success) setSynthesisStatus(res.data.status);
+        } catch (e) { console.error('Error fetching synthesis status', e); }
+    };
+
+    const fetchSynthesis = async () => {
+        setSynthesisLoading(true);
+        try {
+            const res = await axios.get('/api/synthesis/today');
+            if (res.data.success) {
+                setSynthesisData(res.data.content);
+            } else {
+                setSynthesisData(res.data.message || 'No hay síntesis aún.');
+            }
+        } catch (e) {
+            setSynthesisData('Error cargando síntesis: ' + e.message);
+        }
+        setSynthesisLoading(false);
+    };
+
+    const generateSynthesisManual = async () => {
+        setSynthesisLoading(true);
+        setSynthesisData('Generando síntesis (puede tomar de 1 a 3 minutos)...');
+        try {
+            const res = await axios.post('/api/synthesis/generate');
+            if (res.data.success) {
+                setSynthesisData(res.data.content);
+                alert('Síntesis generada correctamente');
+            } else {
+                setSynthesisData(res.data.message || 'Error al generar síntesis');
+            }
+            if (res.data.status) setSynthesisStatus(res.data.status);
+        } catch (e) {
+            setSynthesisData('Error en la llamada: ' + e.message);
+        }
+        setSynthesisLoading(false);
+    };
 
     const fetchLogs = async () => {
         try {
@@ -408,6 +479,28 @@ function App() {
                             <span className="text-[10px] bg-teal-50 text-teal-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Medios Locales</span>
                             <span className="text-[10px] bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Seguridad</span>
                             <span className="text-[10px] bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Política Local</span>
+                        </div>
+                    </div>
+                </button>
+                {/* Síntesis de Prensa */}
+                <button
+                    onClick={() => { setMonitorSection('sintesis'); setActiveTab('synthesis'); }}
+                    className="group relative bg-white rounded-3xl border-2 border-slate-200 hover:border-violet-400 p-8 text-left transition-all duration-300 hover:shadow-2xl hover:shadow-violet-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer overflow-hidden"
+                >
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-violet-50 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="relative z-10">
+                        <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-violet-500/30 mb-5 group-hover:scale-110 transition-transform">
+                            <FileText size={28} />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">Síntesis de Prensa AI</h3>
+                        <p className="text-sm text-slate-500 leading-relaxed mb-4">
+                            Generación automatizada de síntesis de diarios locales y nacionales con Inteligencia Artificial.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            <span className="text-[10px] bg-violet-50 text-violet-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Prensa Libre</span>
+                            <span className="text-[10px] bg-fuchsia-50 text-fuchsia-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Portadas</span>
+                            <span className="text-[10px] bg-pink-50 text-pink-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Columnas</span>
+                            <span className="text-[10px] bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">IA</span>
                         </div>
                     </div>
                 </button>
@@ -851,7 +944,7 @@ function App() {
                         </div>
                     </div>
                     <button
-                        onClick={saveKeywords}
+                        onClick={monitorSection === 'sintesis' ? saveSintesisConfig : saveKeywords}
                         className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-slate-900/20 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
                     >
                         <Save size={18} /> Guardar Cambios
@@ -859,26 +952,38 @@ function App() {
                 </div>
 
                 <div className="flex border-b border-slate-200 mb-6 mt-4">
-                    <button
-                        onClick={() => setConfigTab('twitter')}
-                        className={`px-4 py-3 font-medium text-sm transition-colors relative ${configTab === 'twitter' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px' : 'text-slate-500 hover:text-slate-700 bg-slate-50'}`}
-                    >
-                        {monitorSection === 'medios' ? 'Palabras Clave (Medios)' : 'Twitter (X) y General'}
-                    </button>
-                    {monitorSection !== 'medios' && (
+                    {monitorSection !== 'sintesis' && (
+                        <>
+                            <button
+                                onClick={() => setConfigTab('twitter')}
+                                className={`px-4 py-3 font-medium text-sm transition-colors relative ${configTab === 'twitter' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px' : 'text-slate-500 hover:text-slate-700 bg-slate-50'}`}
+                            >
+                                {monitorSection === 'medios' ? 'Palabras Clave (Medios)' : 'Twitter (X) y General'}
+                            </button>
+                            {monitorSection !== 'medios' && (
+                                <button
+                                    onClick={() => setConfigTab('facebook')}
+                                    className={`px-4 py-3 font-medium text-sm transition-colors relative ${configTab === 'facebook' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px' : 'text-slate-500 hover:text-slate-700 bg-slate-50'}`}
+                                >
+                                    Monitoreo Meta (Facebook)
+                                </button>
+                            )}
+                            <button
+                                onClick={() => setConfigTab('telegram')}
+                                className={`px-4 py-3 font-medium text-sm transition-colors relative ${configTab === 'telegram' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px' : 'text-slate-500 hover:text-slate-700 bg-slate-50 border-b border-slate-200'}`}
+                            >
+                                {monitorSection === 'medios' ? 'Telegram (Medios)' : 'Canales de Telegram'}
+                            </button>
+                        </>
+                    )}
+                    {monitorSection === 'sintesis' && (
                         <button
-                            onClick={() => setConfigTab('facebook')}
-                            className={`px-4 py-3 font-medium text-sm transition-colors relative ${configTab === 'facebook' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px' : 'text-slate-500 hover:text-slate-700 bg-slate-50'}`}
+                            onClick={() => setConfigTab('sintesis_keywords')}
+                            className={`px-4 py-3 font-medium text-sm transition-colors relative text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px`}
                         >
-                            Monitoreo Meta (Facebook)
+                            Keywords de Rastreo (IA)
                         </button>
                     )}
-                    <button
-                        onClick={() => setConfigTab('telegram')}
-                        className={`px-4 py-3 font-medium text-sm transition-colors relative ${configTab === 'telegram' ? 'text-blue-600 bg-white border-t border-x border-slate-200 rounded-t-lg -mb-px' : 'text-slate-500 hover:text-slate-700 bg-slate-50 border-b border-slate-200'}`}
-                    >
-                        {monitorSection === 'medios' ? 'Telegram (Medios)' : 'Canales de Telegram'}
-                    </button>
                 </div>
 
                 {configTab === 'twitter' && (
@@ -962,6 +1067,224 @@ function App() {
                                     )}
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                )}
+
+                {configTab === 'sintesis_keywords' && monitorSection === 'sintesis' && sintesisConfig && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Horarios de Ejecución */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-2">
+                            <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <Clock size={18} className="text-amber-500" /> Horarios de Ejecución (Robots)
+                            </h4>
+                            <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                                Define la ventana de tiempo en la que los robots intentarán extraer la información. Usar formato 24 horas.
+                            </p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Matutina */}
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                    <h5 className="font-bold text-slate-700 text-sm mb-3">Síntesis Matutina (PDFs)</h5>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-1">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Inicio Rango</label>
+                                            <input
+                                                type="time"
+                                                value={sintesisConfig.horarios?.sintesis?.inicio || "06:00"}
+                                                onChange={(e) => setSintesisConfig({
+                                                    ...sintesisConfig,
+                                                    horarios: {
+                                                        ...sintesisConfig.horarios,
+                                                        sintesis: { ...(sintesisConfig.horarios?.sintesis || {}), inicio: e.target.value }
+                                                    }
+                                                })}
+                                                className="w-full bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500 px-3 py-2 text-sm font-mono text-slate-700 outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Fin (Corte Rango)</label>
+                                            <input
+                                                type="time"
+                                                value={sintesisConfig.horarios?.sintesis?.fin || "10:00"}
+                                                onChange={(e) => setSintesisConfig({
+                                                    ...sintesisConfig,
+                                                    horarios: {
+                                                        ...sintesisConfig.horarios,
+                                                        sintesis: { ...(sintesisConfig.horarios?.sintesis || {}), fin: e.target.value }
+                                                    }
+                                                })}
+                                                className="w-full bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500 px-3 py-2 text-sm font-mono text-slate-700 outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 mt-2">Intentos cada 15 min. Límite estricto 15 min antes del fin.</p>
+                                </div>
+
+                                {/* Mañanera */}
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                    <h5 className="font-bold text-slate-700 text-sm mb-3">La Mañanera Presidencial</h5>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-1">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Inicio Rango</label>
+                                            <input
+                                                type="time"
+                                                value={sintesisConfig.horarios?.mananera?.inicio || "11:30"}
+                                                onChange={(e) => setSintesisConfig({
+                                                    ...sintesisConfig,
+                                                    horarios: {
+                                                        ...sintesisConfig.horarios,
+                                                        mananera: { ...(sintesisConfig.horarios?.mananera || {}), inicio: e.target.value }
+                                                    }
+                                                })}
+                                                className="w-full bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500 px-3 py-2 text-sm font-mono text-slate-700 outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Fin Rango</label>
+                                            <input
+                                                type="time"
+                                                value={sintesisConfig.horarios?.mananera?.fin || "14:30"}
+                                                onChange={(e) => setSintesisConfig({
+                                                    ...sintesisConfig,
+                                                    horarios: {
+                                                        ...sintesisConfig.horarios,
+                                                        mananera: { ...(sintesisConfig.horarios?.mananera || {}), fin: e.target.value }
+                                                    }
+                                                })}
+                                                className="w-full bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500 px-3 py-2 text-sm font-mono text-slate-700 outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 mt-2">Detección y emisión inmediata vía Telegram (cada 20 min).</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Columnistas */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                            <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <FileText size={18} className="text-violet-500" /> Columnistas Destacados
+                            </h4>
+                            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+                                Nombres de columnistas o periodistas cuya opinión o participación la IA debe reportar detalladamente si es que los detecta. (Uno por línea)
+                            </p>
+                            <textarea
+                                value={sintesisConfig.columnistas_destacados.join('\n')}
+                                onChange={(e) => setSintesisConfig({ ...sintesisConfig, columnistas_destacados: e.target.value.split('\n').filter(s => s.trim().length > 0) })}
+                                className="w-full h-48 p-3 bg-slate-50 border border-violet-200 rounded-xl text-sm text-slate-700 outline-none focus:ring-2 focus:ring-violet-500 resize-none font-mono"
+                                placeholder={"Ej. Teodoro Lavín\nRoberto Abe Camil"}
+                            />
+                        </div>
+
+                        {/* Temas Clave */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                            <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <Bot size={18} className="text-fuchsia-500" /> Seguimiento Temático
+                            </h4>
+                            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+                                Temas, palabras clave o nombres de funcionarios. La IA buscará en todas las noticias cualquier mención a estos temas para ponerlos en el resumen ejecutivo. (Uno por línea)
+                            </p>
+                            <textarea
+                                value={sintesisConfig.temas_clave.join('\n')}
+                                onChange={(e) => setSintesisConfig({ ...sintesisConfig, temas_clave: e.target.value.split('\n').filter(s => s.trim().length > 0) })}
+                                className="w-full h-48 p-3 bg-slate-50 border border-fuchsia-200 rounded-xl text-sm text-slate-700 outline-none focus:ring-2 focus:ring-fuchsia-500 resize-none font-mono"
+                                placeholder={"Ej. Congreso de Morelos\nIsaac Pimentel\nSubsecretaría..."}
+                            />
+                        </div>
+
+                        {/* Medios Adicionales */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-2">
+                            <div className="flex justify-between items-center mb-4">
+                                <h4 className="font-bold text-slate-800 flex items-center gap-2">
+                                    <Globe size={18} className="text-blue-500" /> Fuentes de Prensa Personalizadas (Estáticas)
+                                </h4>
+                                <button
+                                    onClick={() => setSintesisConfig({
+                                        ...sintesisConfig,
+                                        medios_adicionales: [...(sintesisConfig.medios_adicionales || []), { nombre: '', tipo: 'nacional', url_template: '', vision: false }]
+                                    })}
+                                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                >
+                                    <Plus size={14} /> Añadir Medio
+                                </button>
+                            </div>
+                            <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                                Agrega URLs de PDFs públicos de diarios. Usa <code>{`{YYYY}`}</code>, <code>{`{MM}`}</code>, <code>{`{DD}`}</code> o <code>{`{YYYYMMDD}`}</code> en la URL si la fecha cambia dinámicamente cada día. Marcar la casilla de IA procesará la primera hoja del PDF como IMAGEN para portadas escaneadas.
+                            </p>
+
+                            <div className="space-y-4">
+                                {sintesisConfig.medios_adicionales?.map((medio, index) => (
+                                    <div key={index} className="flex flex-col md:flex-row gap-3 items-center bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm relative group">
+                                        <div className="flex gap-3 w-full md:w-auto">
+                                            <input
+                                                type="text"
+                                                value={medio.nombre}
+                                                onChange={(e) => {
+                                                    const newArr = [...sintesisConfig.medios_adicionales];
+                                                    newArr[index].nombre = e.target.value;
+                                                    setSintesisConfig({ ...sintesisConfig, medios_adicionales: newArr });
+                                                }}
+                                                placeholder="Nombre (ej. Milenio)"
+                                                className="w-full md:w-40 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 px-3 py-2 text-sm text-slate-700 outline-none font-medium"
+                                            />
+                                            <select
+                                                value={medio.tipo}
+                                                onChange={(e) => {
+                                                    const newArr = [...sintesisConfig.medios_adicionales];
+                                                    newArr[index].tipo = e.target.value;
+                                                    setSintesisConfig({ ...sintesisConfig, medios_adicionales: newArr });
+                                                }}
+                                                className="bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 px-3 py-2 text-sm text-slate-700 outline-none cursor-pointer"
+                                            >
+                                                <option value="nacional">Nacional</option>
+                                                <option value="local">Estatal</option>
+                                            </select>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={medio.url_template}
+                                            onChange={(e) => {
+                                                const newArr = [...sintesisConfig.medios_adicionales];
+                                                newArr[index].url_template = e.target.value;
+                                                setSintesisConfig({ ...sintesisConfig, medios_adicionales: newArr });
+                                            }}
+                                            placeholder="https://pagina.com/edicion_{YYYY}{MM}{DD}.pdf"
+                                            className="w-full flex-1 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 px-3 py-2 text-sm text-slate-500 outline-none font-mono"
+                                        />
+                                        <div className="flex items-center gap-3 w-full md:w-auto shrink-0 px-2">
+                                            <label className="flex items-center gap-2 text-xs text-slate-600 font-medium cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={medio.vision}
+                                                    onChange={(e) => {
+                                                        const newArr = [...sintesisConfig.medios_adicionales];
+                                                        newArr[index].vision = e.target.checked;
+                                                        setSintesisConfig({ ...sintesisConfig, medios_adicionales: newArr });
+                                                    }}
+                                                    className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                                                />
+                                                Vision AI
+                                            </label>
+                                            <button
+                                                onClick={() => {
+                                                    const newArr = [...sintesisConfig.medios_adicionales];
+                                                    newArr.splice(index, 1);
+                                                    setSintesisConfig({ ...sintesisConfig, medios_adicionales: newArr });
+                                                }}
+                                                className="p-2 ml-auto text-slate-400 hover:text-red-500 bg-white border border-slate-200 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {(!sintesisConfig.medios_adicionales || sintesisConfig.medios_adicionales.length === 0) && (
+                                    <div className="text-center p-8 bg-slate-50 border border-slate-200 rounded-xl border-dashed">
+                                        <p className="text-slate-500 text-sm">No hay medios adicionales configurados.</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -1329,9 +1652,17 @@ function App() {
                     )}
                     {monitorSection && (
                         <>
-                            <NavButton id="dashboard" icon={LayoutDashboard} label="Resumen Ejecutivo" />
-                            <NavButton id="search" icon={Globe} label="Feeds" />
-                            <NavButton id="ai" icon={Bot} label="Asistente IA" />
+                            {monitorSection !== 'sintesis' && (
+                                <>
+                                    <NavButton id="dashboard" icon={LayoutDashboard} label="Resumen Ejecutivo" />
+                                    <NavButton id="search" icon={Globe} label="Feeds" />
+                                    <NavButton id="ai" icon={Bot} label="Asistente IA" />
+                                </>
+                            )}
+
+                            {monitorSection === 'sintesis' && (
+                                <NavButton id="synthesis" icon={FileText} label="Síntesis Diaria" />
+                            )}
 
                             <div className="pt-6 mt-6 border-t border-slate-100">
                                 <p className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Sistema</p>
@@ -1367,6 +1698,7 @@ function App() {
                                 {!monitorSection && 'Selecciona una Sección'}
                                 {monitorSection && activeTab === 'dashboard' && (monitorSection === 'medios' ? '📰 Resumen Medios' : monitorSection === 'cuautla' ? '📍 Resumen Cuautla' : '🏛️ Resumen Poderes')}
                                 {monitorSection && activeTab === 'search' && (filterMode ? 'Resultados de Búsqueda' : (monitorSection === 'medios' ? '📰 Feed Medios' : monitorSection === 'cuautla' ? '📍 Feed Cuautla' : '🏛️ Feeds en Vivo'))}
+                                {monitorSection && activeTab === 'synthesis' && 'Sintesis de Prensa Automatizada'}
                                 {monitorSection && activeTab === 'ai' && 'Chat Inteligente (IA)'}
                                 {monitorSection && activeTab === 'config' && 'Centro de Configuración'}
                             </h2>
@@ -1397,6 +1729,84 @@ function App() {
                     {!monitorSection && renderLobby()}
                     {monitorSection && activeTab === 'dashboard' && renderDashboard()}
                     {monitorSection && activeTab === 'search' && renderFeed()}
+                    {monitorSection && activeTab === 'synthesis' && (
+                        <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold flex items-center gap-2">
+                                    <FileText className="text-blue-500" />
+                                    Síntesis de Prensa del Día
+                                </h3>
+                                <div className="flex gap-2">
+                                    <button onClick={() => { fetchSynthesis(); fetchSynthesisStatus(); }} disabled={synthesisLoading} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer">
+                                        <RefreshCw size={16} className={synthesisLoading ? 'animate-spin' : ''} /> Actualizar
+                                    </button>
+                                    <a href="/api/synthesis/download-pdf" target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer no-underline">
+                                        <FileText size={16} /> Descargar PDF (Legacy)
+                                    </a>
+                                    <button onClick={generateSynthesisManual} disabled={synthesisLoading} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer">
+                                        <Zap size={16} /> Procesar IA (Forzar)
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Status Matrix */}
+                            {synthesisStatus && (
+                                <div className="mb-6 bg-slate-50 border border-slate-200 rounded-xl p-5">
+                                    <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                        <Activity size={16} className="text-blue-500" /> Estado de Extracción Matutina
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-500 uppercase mb-2">Prensa Estatal</p>
+                                            <div className="flex flex-col gap-2">
+                                                {Object.entries(synthesisStatus.locales || {}).map(([medio, ok]) => (
+                                                    <div key={medio} className="flex justify-between items-center bg-white border border-slate-100 px-3 py-2 rounded-lg shadow-sm">
+                                                        <span className="text-sm text-slate-700">{medio}</span>
+                                                        {ok ? <CheckCircle size={16} className="text-green-500" /> : <Clock size={16} className="text-amber-500 animate-pulse" />}
+                                                    </div>
+                                                ))}
+                                                {Object.keys(synthesisStatus.locales || {}).length === 0 && <span className="text-xs text-slate-400">Escaneando...</span>}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-500 uppercase mb-2">Prensa Nacional</p>
+                                            <div className="flex flex-col gap-2">
+                                                {Object.entries(synthesisStatus.nacionales || {}).map(([medio, ok]) => (
+                                                    <div key={medio} className="flex justify-between items-center bg-white border border-slate-100 px-3 py-2 rounded-lg shadow-sm">
+                                                        <span className="text-sm text-slate-700">{medio}</span>
+                                                        {ok ? <CheckCircle size={16} className="text-green-500" /> : <Clock size={16} className="text-amber-500 animate-pulse" />}
+                                                    </div>
+                                                ))}
+                                                {Object.keys(synthesisStatus.nacionales || {}).length === 0 && <span className="text-xs text-slate-400">Escaneando...</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 min-h-[400px]">
+                                {synthesisLoading ? (
+                                    <div className="flex flex-col items-center justify-center h-64 text-slate-500 gap-4">
+                                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                                        <p>Procesando síntesis con IA (puede tardar un par de minutos)...</p>
+                                    </div>
+                                ) : (
+                                    <div className="relative group">
+                                        <button
+                                            onClick={() => { navigator.clipboard.writeText(synthesisData); alert('Síntesis copiada al portapapeles!'); }}
+                                            className="absolute top-2 right-2 p-2 bg-white border border-slate-200 shadow-sm rounded-lg text-slate-500 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                            title="Copiar todo"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+                                        </button>
+                                        <pre className="whitespace-pre-wrap font-sans text-sm text-slate-700 leading-relaxed overflow-x-auto">
+                                            {synthesisData || "La extracción automatizada está en proceso. Los resultados aparecerán aquí."}
+                                        </pre>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                     {monitorSection && activeTab === 'ai' && renderAI()}
                     {monitorSection && activeTab === 'config' && renderConfig()}
                     {monitorSection && renderLogs()}

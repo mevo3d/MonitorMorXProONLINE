@@ -1,0 +1,28 @@
+{
+    "columnistas_destacados": [
+        "Teodoro Lavín",
+        "Roberto Abe Camil"
+    ],
+    "temas_clave": [
+        "Congreso de Morelos",
+        "Isaac Pimentel",
+        "Seguridad",
+        "Presupuesto"
+    ],
+    "medios_requeridos": {
+        "locales": [
+            "Diario de Morelos",
+            "La Unión de Morelos",
+            "El Sol de Cuernavaca",
+            "El Regional",
+            "Lo de Hoy",
+            "La Jornada Morelos"
+        ],
+        "nacionales": [
+            "Reforma",
+            "El Universal",
+            "La Jornada",
+            "Excelsior"
+        ]
+    }
+}
