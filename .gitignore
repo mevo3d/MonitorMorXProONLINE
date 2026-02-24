@@ -78,6 +78,8 @@ sesion-x/
 sesion-xpro/
 browser-data/
 tweets-seen.json
+facebook-seen.json
+facebook-pages.json
 *.log
 ocr_temp_*.jpg
 
