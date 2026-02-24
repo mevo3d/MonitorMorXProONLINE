@@ -75,6 +75,9 @@ function App() {
     const [synthesisLoading, setSynthesisLoading] = useState(false);
     const [sintesisConfig, setSintesisConfig] = useState(null);
     const [synthesisStatus, setSynthesisStatus] = useState(null);
+    const [synthesisTab, setSynthesisTab] = useState('medios'); // 'medios', 'mananera'
+    const [mananeraData, setMananeraData] = useState(null);
+    const [mananeraLoading, setMananeraLoading] = useState(false);
 
     useEffect(() => {
         fetchStats();
@@ -162,6 +165,7 @@ function App() {
         if (activeTab === 'synthesis') {
             fetchSynthesis();
             fetchSynthesisStatus();
+            fetchMananera();
         }
     }, [activeTab]);
 
@@ -182,6 +186,22 @@ function App() {
         } catch (e) {
             alert('Error guardando config de Síntesis: ' + e.message);
         }
+    };
+
+    const fetchMananera = async () => {
+        setMananeraLoading(true);
+        try {
+            const res = await axios.get('/api/synthesis/mananera');
+            if (res.data && res.data.success) {
+                setMananeraData(res.data);
+            } else {
+                setMananeraData({ message: res.data.message || 'No hay resumen de La Mañanera.' });
+            }
+        } catch (e) {
+            console.error('Error fetching mananera', e);
+            setMananeraData({ message: 'Error cargando resumen: ' + e.message });
+        }
+        setMananeraLoading(false);
     };
 
     const fetchSynthesisStatus = async () => {
@@ -1731,80 +1751,153 @@ function App() {
                     {monitorSection && activeTab === 'search' && renderFeed()}
                     {monitorSection && activeTab === 'synthesis' && (
                         <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-bold flex items-center gap-2">
-                                    <FileText className="text-blue-500" />
-                                    Síntesis de Prensa del Día
-                                </h3>
-                                <div className="flex gap-2">
-                                    <button onClick={() => { fetchSynthesis(); fetchSynthesisStatus(); }} disabled={synthesisLoading} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer">
-                                        <RefreshCw size={16} className={synthesisLoading ? 'animate-spin' : ''} /> Actualizar
-                                    </button>
-                                    <a href="/api/synthesis/download-pdf" target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer no-underline">
-                                        <FileText size={16} /> Descargar PDF (Legacy)
-                                    </a>
-                                    <button onClick={generateSynthesisManual} disabled={synthesisLoading} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer">
-                                        <Zap size={16} /> Procesar IA (Forzar)
-                                    </button>
-                                </div>
+                            <div className="flex border-b border-slate-200 mb-6 gap-6">
+                                <button
+                                    onClick={() => setSynthesisTab('medios')}
+                                    className={`pb-3 text-sm font-bold border-b-2 transition-colors ${synthesisTab === 'medios' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    Prensa y Medios
+                                </button>
+                                <button
+                                    onClick={() => setSynthesisTab('mananera')}
+                                    className={`pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${synthesisTab === 'mananera' ? 'border-amber-500 text-amber-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    La Mañanera del Pueblo 🇲🇽
+                                </button>
                             </div>
 
-                            {/* Status Matrix */}
-                            {synthesisStatus && (
-                                <div className="mb-6 bg-slate-50 border border-slate-200 rounded-xl p-5">
-                                    <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
-                                        <Activity size={16} className="text-blue-500" /> Estado de Extracción Matutina
-                                    </h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <p className="text-xs font-bold text-slate-500 uppercase mb-2">Prensa Estatal</p>
-                                            <div className="flex flex-col gap-2">
-                                                {Object.entries(synthesisStatus.locales || {}).map(([medio, ok]) => (
-                                                    <div key={medio} className="flex justify-between items-center bg-white border border-slate-100 px-3 py-2 rounded-lg shadow-sm">
-                                                        <span className="text-sm text-slate-700">{medio}</span>
-                                                        {ok ? <CheckCircle size={16} className="text-green-500" /> : <Clock size={16} className="text-amber-500 animate-pulse" />}
-                                                    </div>
-                                                ))}
-                                                {Object.keys(synthesisStatus.locales || {}).length === 0 && <span className="text-xs text-slate-400">Escaneando...</span>}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs font-bold text-slate-500 uppercase mb-2">Prensa Nacional</p>
-                                            <div className="flex flex-col gap-2">
-                                                {Object.entries(synthesisStatus.nacionales || {}).map(([medio, ok]) => (
-                                                    <div key={medio} className="flex justify-between items-center bg-white border border-slate-100 px-3 py-2 rounded-lg shadow-sm">
-                                                        <span className="text-sm text-slate-700">{medio}</span>
-                                                        {ok ? <CheckCircle size={16} className="text-green-500" /> : <Clock size={16} className="text-amber-500 animate-pulse" />}
-                                                    </div>
-                                                ))}
-                                                {Object.keys(synthesisStatus.nacionales || {}).length === 0 && <span className="text-xs text-slate-400">Escaneando...</span>}
-                                            </div>
+                            {synthesisTab === 'medios' ? (
+                                <>
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-xl font-bold flex items-center gap-2">
+                                            <FileText className="text-blue-500" />
+                                            Síntesis de Prensa del Día
+                                        </h3>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => { fetchSynthesis(); fetchSynthesisStatus(); }} disabled={synthesisLoading} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer">
+                                                <RefreshCw size={16} className={synthesisLoading ? 'animate-spin' : ''} /> Actualizar
+                                            </button>
+                                            <a href="/api/synthesis/download-pdf" target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer no-underline">
+                                                <FileText size={16} /> Descargar PDF (Legacy)
+                                            </a>
+                                            <button onClick={generateSynthesisManual} disabled={synthesisLoading} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer">
+                                                <Zap size={16} /> Procesar IA (Forzar)
+                                            </button>
                                         </div>
                                     </div>
-                                </div>
+
+                                    {/* Status Matrix */}
+                                    {synthesisStatus && (
+                                        <div className="mb-6 bg-slate-50 border border-slate-200 rounded-xl p-5">
+                                            <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                                <Activity size={16} className="text-blue-500" /> Estado de Extracción Matutina
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div>
+                                                    <p className="text-xs font-bold text-slate-500 uppercase mb-2">Prensa Estatal</p>
+                                                    <div className="flex flex-col gap-2">
+                                                        {Object.entries(synthesisStatus.locales || {}).map(([medio, ok]) => (
+                                                            <div key={medio} className="flex justify-between items-center bg-white border border-slate-100 px-3 py-2 rounded-lg shadow-sm">
+                                                                <span className="text-sm text-slate-700">{medio}</span>
+                                                                {ok ? <CheckCircle size={16} className="text-green-500" /> : <Clock size={16} className="text-amber-500 animate-pulse" />}
+                                                            </div>
+                                                        ))}
+                                                        {Object.keys(synthesisStatus.locales || {}).length === 0 && <span className="text-xs text-slate-400">Escaneando...</span>}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-slate-500 uppercase mb-2">Prensa Nacional</p>
+                                                    <div className="flex flex-col gap-2">
+                                                        {Object.entries(synthesisStatus.nacionales || {}).map(([medio, ok]) => (
+                                                            <div key={medio} className="flex justify-between items-center bg-white border border-slate-100 px-3 py-2 rounded-lg shadow-sm">
+                                                                <span className="text-sm text-slate-700">{medio}</span>
+                                                                {ok ? <CheckCircle size={16} className="text-green-500" /> : <Clock size={16} className="text-amber-500 animate-pulse" />}
+                                                            </div>
+                                                        ))}
+                                                        {Object.keys(synthesisStatus.nacionales || {}).length === 0 && <span className="text-xs text-slate-400">Escaneando...</span>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 min-h-[400px]">
+                                        {synthesisLoading ? (
+                                            <div className="flex flex-col items-center justify-center h-64 text-slate-500 gap-4">
+                                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                                                <p>Procesando síntesis con IA (puede tardar un par de minutos)...</p>
+                                            </div>
+                                        ) : (
+                                            <div className="relative group">
+                                                <button
+                                                    onClick={() => { navigator.clipboard.writeText(synthesisData); alert('Síntesis copiada al portapapeles!'); }}
+                                                    className="absolute top-2 right-2 p-2 bg-white border border-slate-200 shadow-sm rounded-lg text-slate-500 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                                    title="Copiar todo"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+                                                </button>
+                                                <pre className="whitespace-pre-wrap font-sans text-sm text-slate-700 leading-relaxed overflow-x-auto">
+                                                    {synthesisData || "La extracción automatizada está en proceso. Los resultados aparecerán aquí."}
+                                                </pre>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-xl font-bold flex items-center gap-2">
+                                            <span className="text-xl">🇲🇽</span>
+                                            Resumen de La Mañanera
+                                        </h3>
+                                        <div className="flex gap-2">
+                                            <button onClick={fetchMananera} disabled={mananeraLoading} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer">
+                                                <RefreshCw size={16} className={mananeraLoading ? 'animate-spin' : ''} /> Actualizar
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 min-h-[400px]">
+                                        {mananeraLoading ? (
+                                            <div className="flex flex-col items-center justify-center h-64 text-slate-500 gap-4">
+                                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-500"></div>
+                                                <p>Cargando resumen de La Mañanera...</p>
+                                            </div>
+                                        ) : (
+                                            mananeraData?.success ? (
+                                                <div className="relative group">
+                                                    <button
+                                                        onClick={() => { navigator.clipboard.writeText(mananeraData.summary); alert('Resumen copiado al portapapeles!'); }}
+                                                        className="absolute top-2 right-2 p-2 bg-white border border-slate-200 shadow-sm rounded-lg text-slate-500 hover:text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer flex items-center justify-center gap-1"
+                                                        title="Copiar todo"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+                                                    </button>
+                                                    <div className="prose prose-slate prose-sm max-w-none prose-p:my-1 prose-headings:my-2 prose-li:my-0.5 whitespace-pre-wrap leading-relaxed text-slate-700">
+                                                        {renderTextWithLinks(mananeraData.summary)}
+                                                        {mananeraData.pdfUrl && (
+                                                            <div className="mt-8 pt-4 border-t border-slate-200 flex items-center justify-between">
+                                                                <span className="text-xs text-slate-400">Generado de forma automática</span>
+                                                                <a href={mananeraData.pdfUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-xs flex items-center gap-1">
+                                                                    <ExternalLink size={12} /> Ver PDF Original
+                                                                </a>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center h-64 text-slate-500 gap-4">
+                                                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-400">
+                                                        <FileText size={24} />
+                                                    </div>
+                                                    <p>{mananeraData?.message || 'El resumen de hoy aún no ha sido procesado.'}</p>
+                                                    <p className="text-xs text-slate-400">El robot intentará recopilar La Mañanera automáticamente después de las 11:30 AM.</p>
+                                                </div>
+                                            )
+                                        )}
+                                    </div>
+                                </>
                             )}
-
-                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 min-h-[400px]">
-                                {synthesisLoading ? (
-                                    <div className="flex flex-col items-center justify-center h-64 text-slate-500 gap-4">
-                                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-                                        <p>Procesando síntesis con IA (puede tardar un par de minutos)...</p>
-                                    </div>
-                                ) : (
-                                    <div className="relative group">
-                                        <button
-                                            onClick={() => { navigator.clipboard.writeText(synthesisData); alert('Síntesis copiada al portapapeles!'); }}
-                                            className="absolute top-2 right-2 p-2 bg-white border border-slate-200 shadow-sm rounded-lg text-slate-500 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                                            title="Copiar todo"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
-                                        </button>
-                                        <pre className="whitespace-pre-wrap font-sans text-sm text-slate-700 leading-relaxed overflow-x-auto">
-                                            {synthesisData || "La extracción automatizada está en proceso. Los resultados aparecerán aquí."}
-                                        </pre>
-                                    </div>
-                                )}
-                            </div>
                         </div>
                     )}
                     {monitorSection && activeTab === 'ai' && renderAI()}

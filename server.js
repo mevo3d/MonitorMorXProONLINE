@@ -302,6 +302,23 @@ app.get('/api/synthesis/status', (req, res) => {
     }
 });
 
+app.get('/api/synthesis/mananera', (req, res) => {
+    try {
+        const todayStr = dayjs().format('YYYYMMDD');
+        const mananeraFile = path.join(__dirname, 'downloads', 'sintesis', todayStr, 'mananera.json');
+
+        if (fs.existsSync(mananeraFile)) {
+            const data = JSON.parse(fs.readFileSync(mananeraFile, 'utf8'));
+            res.json(data);
+        } else {
+            res.json({ success: false, message: 'El resumen de La Mañanera de hoy aún no ha sido generado.' });
+        }
+    } catch (e) {
+        console.error('Error en /api/synthesis/mananera:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.post('/api/synthesis/generate', async (req, res) => {
     try {
         const scraper = await import('./press-scraper.js');

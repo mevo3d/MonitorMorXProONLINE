@@ -14,7 +14,6 @@ import util from 'util';
 import { scrapeFacebookPages } from './facebook.js';
 import { scrapeDailyPress } from './press-scraper.js';
 import { generateSynthesis } from './synthesis-generator.js';
-import { scrapeMananera } from './elmedio-scraper.js';
 import { processAndSendMananera } from './mananera-generator.js';
 
 // === IMPORTACIÓN DE MÓDULOS LEGACY ===
@@ -791,6 +790,7 @@ async function iniciarMonitor() {
 
 // ====== SCHEDULER (Interval Independent) ======
 let pressSynthesisDoneToday = null;
+let mananeraDoneToday = null;
 
 function isWithinTimeRange(now, inicioStr, finStr) {
     if (!inicioStr || !finStr) return false;
@@ -847,7 +847,7 @@ setInterval(() => {
             })
             .then(sintesisFinal => {
                 if (sintesisFinal && bot) {
-                    // Split the synthesis into parts if it exceeds Telegram's limit (Telegram limit is 4096)
+                    // Split the synthesis into parts if it exceeds Telegram's limit
                     const partes = sintesisFinal.split('===');
                     partes.forEach((parte, index) => {
                         if (parte.trim().length > 0) {
@@ -864,18 +864,16 @@ setInterval(() => {
     }
 
     // Entre horario programado: Intentar La Mañanera cada 20 minutos
-    const mananeraDoneKey = `mananera_${todayStr}`;
     const withinMananeraHours = isWithinTimeRange(now, horarios.mananera.inicio, horarios.mananera.fin);
-    if (withinMananeraHours && (now.getMinutes() % 20 < 2) && pressSynthesisDoneToday !== mananeraDoneKey) {
+    if (withinMananeraHours && (now.getMinutes() % 20 < 2) && mananeraDoneToday !== todayStr) {
         console.log(`🇲🇽 Intentando escanear La Mañanera del Pueblo (${now.getHours()}:${now.getMinutes()})...`);
-        scrapeMananera()
-            .then(textoExtraido => {
-                if (textoExtraido && textoExtraido.length > 100) {
-                    console.log('✅ PDF de La Mañanera localizado. Procesando con IA...');
-                    pressSynthesisDoneToday = mananeraDoneKey; // Prevent further runs today
-                    return processAndSendMananera(textoExtraido);
+        processAndSendMananera()
+            .then(resumenText => {
+                if (resumenText) {
+                    console.log('✅ PDF de La Mañanera localizado y procesado con IA exitosamente.');
+                    mananeraDoneToday = todayStr; // Prevent further runs today
                 } else {
-                    console.log('⏳ Aún no suben el PDF de La Mañanera. Reintentando en 20 mins.');
+                    console.log('⏳ Aún no suben el PDF de La Mañanera o faltó texto. Reintentando en 20 mins.');
                 }
             })
             .catch(e => console.error('💥 Error global en La Mañanera:', e.message));
