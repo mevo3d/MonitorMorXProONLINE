@@ -377,6 +377,109 @@ app.post('/api/synthesis/config', (req, res) => {
     }
 });
 
+// ====== ENDPOINT: Configuración Facebook ======
+app.get('/api/config/facebook', (req, res) => {
+    try {
+        if (!fs.existsSync(FACEBOOK_PAGES_FILE)) {
+            return res.json({ pages: [], cookies: [] });
+        }
+        res.json(JSON.parse(fs.readFileSync(FACEBOOK_PAGES_FILE, 'utf8')));
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/config/facebook/pages', (req, res) => {
+    try {
+        let config = { pages: [], cookies: [] };
+        if (fs.existsSync(FACEBOOK_PAGES_FILE)) {
+            config = JSON.parse(fs.readFileSync(FACEBOOK_PAGES_FILE, 'utf8'));
+        }
+        config.pages = req.body.pages || [];
+        fs.writeFileSync(FACEBOOK_PAGES_FILE, JSON.stringify(config, null, 2));
+        res.json({ success: true, totalPages: config.pages.length });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/config/facebook/cookies', (req, res) => {
+    try {
+        let config = { pages: [], cookies: [] };
+        if (fs.existsSync(FACEBOOK_PAGES_FILE)) {
+            config = JSON.parse(fs.readFileSync(FACEBOOK_PAGES_FILE, 'utf8'));
+        }
+        config.cookies = req.body.cookies || [];
+        fs.writeFileSync(FACEBOOK_PAGES_FILE, JSON.stringify(config, null, 2));
+        res.json({ success: true, totalCookies: config.cookies.length });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ====== ENDPOINT: Estadísticas Facebook ======
+app.get('/api/stats/facebook', (req, res) => {
+    try {
+        const fbPosts = loadFbPosts();
+        if (fbPosts.length === 0) {
+            return res.json({ totalPosts: 0, topPages: [] });
+        }
+
+        const pageCount = {};
+        const pageNames = {};
+        const pageAvatars = {};
+
+        for (const p of fbPosts) {
+            if (!p.handle) continue;
+            const h = p.handle;
+            pageCount[h] = (pageCount[h] || 0) + 1;
+            if (p.name) pageNames[h] = p.name;
+            if (p.profileImage && !pageAvatars[h]) pageAvatars[h] = p.profileImage;
+        }
+
+        const topPages = Object.entries(pageCount)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([handle, count]) => ({
+                handle,
+                nombre: pageNames[handle] || handle,
+                posts: count,
+                profileImage: pageAvatars[handle] || null
+            }));
+
+        res.json({
+            totalPosts: fbPosts.length,
+            topPages,
+            fecha: new Date().toISOString()
+        });
+    } catch (e) {
+        console.error('Error en /api/stats/facebook:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ====== ENDPOINT: Posts de Facebook ======
+app.get('/api/posts/facebook', (req, res) => {
+    try {
+        if (fs.existsSync(FB_SEEN_FILE)) {
+            let data = JSON.parse(fs.readFileSync(FB_SEEN_FILE, 'utf8'));
+
+            if (req.query.keyword) {
+                const searchKw = req.query.keyword.toLowerCase();
+                data = data.filter(p => (p.text || '').toLowerCase().includes(searchKw));
+            }
+
+            const limit = parseInt(req.query.limit) || 100;
+            const sorted = [...data].reverse().slice(0, limit);
+            res.json(sorted);
+        } else {
+            res.json([]);
+        }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // ====== ENDPOINT: Estadísticas Medios (Zona Oriente) ======
 app.get('/api/stats/medios', (req, res) => {
     try {
