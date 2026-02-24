@@ -277,6 +277,22 @@ async function buscarTweetsBrowser() {
         await page.evaluate(() => window.scrollBy(0, 500));
         await page.waitForTimeout(2000);
 
+        // Expandir tweets largos ("Mostrar más")
+        await page.evaluate(() => {
+            const showMoreBtns = document.querySelectorAll('[data-testid="tweet-text-show-more-link"]');
+            showMoreBtns.forEach(btn => {
+                try { btn.click(); } catch (e) { }
+            });
+            // Fallback por si usan span con "Mostrar más"
+            const spans = document.querySelectorAll('span');
+            spans.forEach(span => {
+                if (span.innerText === 'Mostrar más' || span.innerText === 'Show more') {
+                    try { span.click(); } catch (e) { }
+                }
+            });
+        });
+        await page.waitForTimeout(1500); // Esperar a que el DOM se expanda
+
         todosLosTweets = await page.evaluate(() => {
             const articles = document.querySelectorAll('article[data-testid="tweet"]');
             const data = [];

@@ -942,6 +942,22 @@ function escapeMarkdown(text) {
 async function verificarNuevosTweets(page, keywords, tweetsEnviados, count, bot) {
   try {
     console.log('🔍 Verificando nuevos tweets...');
+
+    // Expandir tweets largos antes de analizarlos
+    await page.evaluate(() => {
+      const showMoreBtns = document.querySelectorAll('[data-testid="tweet-text-show-more-link"]');
+      showMoreBtns.forEach(btn => {
+        try { btn.click(); } catch (e) { }
+      });
+      const spans = document.querySelectorAll('span');
+      spans.forEach(span => {
+        if (span.innerText === 'Mostrar más' || span.innerText === 'Show more') {
+          try { span.click(); } catch (e) { }
+        }
+      });
+    });
+    await page.waitForTimeout(1000);
+
     const tweets = await page.$$('[data-testid="tweet"]');
     console.log(`✨ Encontrados ${tweets.length} elementos de tweet en el DOM`);
 
