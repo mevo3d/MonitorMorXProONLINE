@@ -15,34 +15,185 @@ export async function buildPdf(targetDateStr) {
 
     const data = JSON.parse(fs.readFileSync(rawFile, 'utf8'));
 
-    // Estilos CSS para simular el PDF corporativo
+    // Estilos CSS corporativos avanzados (igualados al PDF Legacy pero modernos)
+    const headerTitle = data.fechas || `SÍNTESIS DE PRENSA ${targetDateStr.split('-').reverse().join(' DE ')}`;
+
     const css = `
-        @import url('https://fonts.googleapis.com/css2?family=Calibri:wght@400;700&display=swap');
-        body { font-family: 'Calibri', 'Arial', sans-serif; margin: 40px; color: #000; line-height: 1.5; font-size: 14px; }
-        h1 { color: #8A0000; text-align: center; text-transform: uppercase; margin-bottom: 30px; font-size: 22px; }
-        h2 { color: #8A0000; text-transform: uppercase; border-bottom: 2px solid #8A0000; padding-bottom: 5px; margin-top: 30px; font-size: 18px; }
-        .item { margin-bottom: 15px; }
-        .medios { font-weight: bold; text-decoration: underline; color: #000; }
-        .titulo { font-weight: bold; }
-        .nota { margin-top: 5px; text-align: justify; }
-        .portada-img { max-width: 100%; height: auto; max-height: 900px; display: block; margin: 0 auto; page-break-after: auto; }
-        .portadas-container { text-align: center; }
-        a { color: #000; text-decoration: none; }
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap');
+        
+        @page {
+            margin: 0;
+            size: letter;
+        }
+        
+        body { 
+            font-family: 'Roboto', 'Arial', sans-serif; 
+            margin: 0; 
+            padding: 0;
+            color: #333; 
+            line-height: 1.5; 
+            font-size: 16px; 
+            background: #fff;
+        }
+        
+        .page-container {
+            padding: 40px 50px;
+        }
+
+        /* HEADER PRINCIPAL (Se inserta solo en la primera página por Playwright o manualmente) */
+        .pdf-header {
+            background-color: #D9D9D9;
+            padding: 20px 40px;
+            font-family: 'Arial', sans-serif;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            border-bottom: 5px solid #D50000;
+        }
+
+        .header-column {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-rojo {
+            color: #D50000;
+            text-transform: uppercase;
+            font-size: 32px;
+            font-weight: 900;
+            margin: 0;
+            letter-spacing: 1px;
+        }
+        
+        .header-azul {
+            color: #2F69C3;
+            text-transform: uppercase;
+            font-size: 24px;
+            font-weight: 900;
+            margin: 0;
+        }
+        
+        .header-fecha {
+            color: #FBC02D;
+            background-color: #333; /* Fondo oscuro para contrastar con amarillo si se desea, o texto directo */
+            display: inline-block;
+            padding: 4px 10px;
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 5px;
+            border-radius: 3px;
+        }
+
+        /* SEPARADORES Y CATEGORIAS */
+        .seccion-titulo { 
+            color: #D50000; 
+            text-transform: uppercase; 
+            border-bottom: 2px solid #CCCCCC; 
+            padding-bottom: 5px; 
+            margin-top: 35px; 
+            margin-bottom: 20px;
+            font-size: 16px; 
+            font-weight: bold;
+            page-break-after: avoid;
+        }
+        
+        /* NOTAS PERIODÍSTICAS */
+        .nota-item { 
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 25px; 
+            page-break-inside: avoid;
+            text-align: justify;
+        }
+
+        .nota-logo {
+            flex-shrink: 0;
+            width: 70px;
+            height: 70px;
+            background-color: #f1f1f1;
+            border: 2px solid #ddd;
+            margin-right: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            text-align: center;
+            color: #555;
+            font-weight: bold;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+            overflow: hidden;
+            text-transform: uppercase;
+        }
+
+        .nota-content {
+            flex: 1;
+        }
+        
+        .nota-fuente { 
+            font-weight: bold; 
+            text-decoration: underline; 
+            color: #000; 
+            text-transform: uppercase;
+        }
+        
+        .nota-titulo { 
+            font-weight: bold; 
+            color: #000;
+            margin-left: 5px;
+        }
+        
+        .nota-resumen { 
+            margin-top: 8px; 
+            color: #444; 
+            font-size: 15px; /* Bigger sub-text */
+            padding-left: 2px;
+        }
+        
+        .nota-link {
+            color: #2F69C3;
+            text-decoration: none;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+
+        /* PORTADAS */
+        .portadas-wrapper { text-align: center; }
+        .portada-titulo {
+            background: #D9D9D9; 
+            padding: 10px; 
+            font-weight: bold; 
+            color: #000;
+            margin-bottom: 20px;
+        }
+        .portada-img { 
+            max-width: 90%; 
+            max-height: 850px; 
+            display: block; 
+            margin: 0 auto; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+            border: 1px solid #ccc;
+        }
     `;
 
-    // Fechas (Titulo)
-    const headerTitle = data.fechas || `SÍNTESIS DE PRENSA ${targetDateStr}`;
-
     let html = `
-        < !DOCTYPE html >
-            <html lang="es">
-                <head>
-                    <meta charset="UTF-8">
-                        <style>${css}</style>
-                </head>
-                <body>
-                    <h1>${headerTitle}</h1>
-                    `;
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <style>${css}</style>
+        </head>
+        <body>
+            <!-- Portada Cover Oficial similar a Legacy -->
+            <div class="pdf-header">
+                <div class="header-column">
+                    <div class="header-rojo">SÍNTESIS DE PRENSA</div>
+                    <div class="header-azul">SÍNTESIS DE PRENSA</div>
+                    <div class="header-fecha">${headerTitle}</div>
+                </div>
+            </div>
+            <div class="page-container">
+    `;
 
     // Bloques Clásicos
     const categorias = ['CONGRESO', 'GOBIERNO', 'JUDICIAL_SEGURIDAD', 'MUNICIPIOS', 'GENERAL', 'NACIONAL', 'COLUMNAS'];
@@ -59,19 +210,32 @@ export async function buildPdf(targetDateStr) {
     for (const cat of categorias) {
         const items = data[cat];
         if (items && items.length > 0) {
-            html += `<h2>${humanLabels[cat]}</h2>`;
+            html += `<div class="seccion-titulo">${humanLabels[cat]}</div>`;
             items.forEach((item, index) => {
                 let linkHTML = '';
                 if (item.enlaces && item.enlaces.length > 0) {
-                    linkHTML = ` <a href="${item.enlaces[0]}" target="_blank">[Enlace]</a>`;
+                    linkHTML = `<a class="nota-link" href="${item.enlaces[0]}" target="_blank">[Ver fuente original]</a>`;
                 }
+
+                // Formatear titulares que traigan la fuente pegada (a veces falla la IA)
+                let renderFuente = item.medios;
+                let renderTitulo = item.titulo;
+
                 html += `
-                    <div class="item">
-                        <span class="medios">${item.medios}:</span>
-                        <span class="titulo">${item.titulo}</span>${linkHTML}
-                        <div class="nota">${item.resumen}</div>
+                    <div class="nota-item">
+                        <div class="nota-logo">
+                            ${renderFuente}
+                        </div>
+                        <div class="nota-content">
+                            <div>
+                                <span class="nota-fuente">${renderFuente}:</span> 
+                                <span class="nota-titulo">${renderTitulo}</span>
+                                ${linkHTML}
+                            </div>
+                            <div class="nota-resumen">${item.resumen}</div>
+                        </div>
                     </div>
-                    `;
+                `;
             });
         }
     }
@@ -81,23 +245,30 @@ export async function buildPdf(targetDateStr) {
     if (fs.existsSync(portadasDir)) {
         const files = fs.readdirSync(portadasDir).filter(f => f.startsWith(targetDateStr));
         if (files.length > 0) {
-            html += `<h2>PORTADAS MORELOS</h2><div class="portadas-container">`;
+            html += `</div> <!-- Close Text Container -->
+                     <div class="portadas-wrapper">`;
+
             for (const f of files) {
                 const imgPath = path.join(portadasDir, f);
-                // Convert image to base64 so Chromium local file rules don't block it
                 const ext = path.extname(f).toLowerCase().replace('.', '');
                 const mime = ext === 'jpg' || ext === 'jpeg' ? 'jpeg' : ext;
                 const base64 = fs.readFileSync(imgPath).toString('base64');
-                html += `<div style="page-break-before: always; margin-top: 40px;">
-                        <h3>${f.toUpperCase().replace('.JPG', '').replace(targetDateStr + '-', '')}</h3>
+                const titleStr = f.toUpperCase().replace('.JPG', '').replace('.PNG', '').replace(targetDateStr + '-', '');
+
+                html += `<div style="page-break-before: always; padding-top: 40px;">
+                        <div class="portada-titulo">${titleStr}</div>
                         <img class="portada-img" src="data:image/${mime};base64,${base64}" />
                     </div>`;
             }
             html += `</div>`;
+        } else {
+            html += `</div> <!-- Close Text Container -->`;
         }
+    } else {
+        html += `</div> <!-- Close Text Container -->`;
     }
 
-    html += `</body></html > `;
+    html += `</body></html>`;
 
     // Generate PDF
     const saveDir = path.join(__dirname, '../downloads/sintesis', targetDateStr.replace(/-/g, ''));

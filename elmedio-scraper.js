@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
-import pdfParse from 'pdf-parse/lib/pdf-parse.js';
+import { PDFParse } from 'pdf-parse';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -13,7 +13,7 @@ async function extractTextFromPDF(pdfPath) {
     try {
         const dataBuffer = fs.readFileSync(pdfPath);
         const options = { max: 15 }; // Scrape up to 15 pages for Mananeras
-        const data = await pdfParse(dataBuffer, options);
+        const data = await new PDFParse({ data: dataBuffer, options });
         return data.text;
     } catch (error) {
         console.error(`[PDF Parse] Error reading text from ${pdfPath}:`, error.message);

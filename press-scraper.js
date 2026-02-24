@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 dotenv.config({ override: true });
 import * as cheerio from 'cheerio';
 import dayjs from 'dayjs';
-import pdfParse from 'pdf-parse/lib/pdf-parse.js';
+import { PDFParse } from 'pdf-parse';
 import { exec } from 'child_process';
 import util from 'util';
 import OpenAI from 'openai';
@@ -71,7 +71,7 @@ async function extractTextFromPDF(pdfPath) {
     try {
         const dataBuffer = fs.readFileSync(pdfPath);
         const options = { max: 5 }; // Only parse first 5 pages for synthesis
-        const data = await pdfParse(dataBuffer, options);
+        const data = await new PDFParse({ data: dataBuffer, options });
         return data.text;
     } catch (error) {
         console.error(`[PDF Parse] Error reading text from ${pdfPath}:`, error.message);
