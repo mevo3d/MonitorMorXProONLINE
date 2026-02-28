@@ -695,10 +695,10 @@ async function iniciarMonitor() {
                     // Guardar FB posts en su propio archivo JSON
                     const fbHistory = fs.existsSync(FB_SEEN_FILE) ? JSON.parse(fs.readFileSync(FB_SEEN_FILE)) : [];
                     const fbSeenIds = new Set(fbHistory.map(p => p.id));
-                    const fbSeenTexts = new Set(fbHistory.map(p => (p.text || '').substring(0, 80).replace(/\W/g, '').toLowerCase()));
+                    const fbSeenTexts = new Set(fbHistory.map(p => ((p.name || p.handle || '') + '|' + (p.text || '').substring(0, 80)).replace(/\W/g, '').toLowerCase()));
                     let fbNewCount = 0;
                     for (const post of fbPosts) {
-                        const postKey = (post.text || '').substring(0, 80).replace(/\W/g, '').toLowerCase();
+                        const postKey = ((post.name || post.handle || '') + '|' + (post.text || '').substring(0, 80)).replace(/\W/g, '').toLowerCase();
                         if (fbSeenIds.has(post.id)) continue;
                         if (postKey.length > 20 && fbSeenTexts.has(postKey)) continue; // Extra safety layer against dynamic IDs
                         fbHistory.push({

@@ -137,6 +137,20 @@ export async function scrapeFacebookPages(onNewPost) {
                     await delay(2000);
                 }
 
+                // Expandir textos cortados ("Ver más")
+                try {
+                    await page.evaluate(() => {
+                        const buttons = Array.from(document.querySelectorAll('div[role="button"]'));
+                        buttons.forEach(btn => {
+                            const text = (btn.innerText || '').toLowerCase();
+                            if (text.includes('ver más') || text.includes('see more')) {
+                                btn.click();
+                            }
+                        });
+                    });
+                    await delay(2000); // Dar tiempo a que cargue el texto
+                } catch (e) { /* ignore */ }
+
                 // Log what we can see for debugging
                 const debugInfo = await page.evaluate(() => {
                     const articles = document.querySelectorAll('div[role="article"]');
@@ -275,7 +289,8 @@ export async function scrapeFacebookPages(onNewPost) {
                             for (const link of allLinks) {
                                 const href = link.href || '';
                                 if (href.includes('/posts/') || href.includes('fbid=') || href.includes('/permalink/') || href.includes('/photos/') || href.includes('/videos/')) {
-                                    postUrl = href.split('?')[0];
+                                    // Limpiar parámetros de rastreo manteniendo los IDs
+                                    postUrl = href.split('&__cft__')[0].split('&__tn__')[0];
                                     break;
                                 }
                             }
@@ -286,7 +301,7 @@ export async function scrapeFacebookPages(onNewPost) {
                                     if (href.includes('facebook.com') && href.includes('/') && !href.includes('/login') && !href.includes('/hashtag')) {
                                         const ariaLabel = link.getAttribute('aria-label') || '';
                                         if (ariaLabel.match(/\d+\s*(hora|min|día|hour|day|ago)/i) || link.querySelector('abbr')) {
-                                            postUrl = href.split('?')[0];
+                                            postUrl = href.split('&__cft__')[0].split('&__tn__')[0];
                                             break;
                                         }
                                     }
@@ -295,11 +310,11 @@ export async function scrapeFacebookPages(onNewPost) {
                             if (!postUrl) postUrl = `${window.location.href}#post-fallback`;
 
                             // Generar ID persistente y estable para evitar enviar duplicados
-                            const idMatch = postUrl.match(/posts\/(\d+)/) || postUrl.match(/fbid=(\d+)/) || postUrl.match(/permalink\/(\d+)/);
+                            const idMatch = postUrl.match(/posts\/(\d+)/) || postUrl.match(/(?:fbid|story_fbid|v)=(\d+)/) || postUrl.match(/permalink\/(\d+)/);
                             const idKey = (text || '').substring(0, 60).replace(/\W/g, '');
                             let fallbackId = idKey;
                             if (!fallbackId && mediaUrls.length > 0) fallbackId = 'media_' + mediaUrls[0].substring(mediaUrls[0].length - 30).replace(/\W/g, '');
-                            
+
                             const id = idMatch ? `fb_${idMatch[1]}` : `fb_hash_${fallbackId}`;
 
                             extracted.push({
