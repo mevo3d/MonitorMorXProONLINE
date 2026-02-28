@@ -308,9 +308,9 @@ async function buscarTweetsBrowser() {
                     const profileImage = avatarImg ? avatarImg.src : null;
 
                     // Imágenes y Videos del tweet (no card)
-                    const imgEls = article.querySelectorAll('div[data-testid="tweetPhoto"] img');
+                    const imgEls = Array.from(article.querySelectorAll('img')).filter(img => img.src && img.src.includes('twimg.com/media/'));
                     const isVideo = article.querySelector('div[data-testid="videoComponent"]') !== null ||
-                        article.querySelector('video') !== null;
+                        article.querySelector('video') !== null || article.querySelector('[data-testid="playButton"]') !== null;
 
                     // Link Preview Cards (Noticias, YouTube, etc)
                     const cardEl = article.querySelector('[data-testid="card.wrapper"]');
@@ -671,9 +671,36 @@ async function limpiezaMensualLegacy() {
     }
 }
 
+// ====== NOTIFICACIÓN DE REINICIO ======
+async function notificarReinicio() {
+    let msgExtra = '';
+    try {
+        const { stdout } = await execPromise('git log -1 --pretty=format:"*📝 Git Commit:* %s%n*👤 Autor:* %an%n*🕒 Última Actualización:* %ar"');
+        msgExtra = `\n\n${stdout}`;
+    } catch (e) { /* ignore */ }
+
+    const baseMsg = `⚙️ *SERVIDOR REINICIADO*\nEl Monitor Maestro y todos los Scrapers (FB, X Pro, Prensa) acaban de arrancar exitosamente.${msgExtra}`;
+
+    const targets = [{ b: bot, id: TELEGRAM_CHAT_ID }];
+    for (const key in botsEspecializados) {
+        if (botsEspecializados[key]) {
+            targets.push({ b: botsEspecializados[key].bot, id: botsEspecializados[key].chatId });
+        }
+    }
+
+    for (const t of targets) {
+        if (t.b && t.id) {
+            try {
+                await t.b.sendMessage(t.id, baseMsg, { parse_mode: 'Markdown' });
+            } catch (e) { console.error('Error enviando notificación de inicio:', e.message); }
+        }
+    }
+}
+
 // ====== CICLO PRINCIPAL (Loop) ======
 async function iniciarMonitor() {
     await cargarPalabrasClave();
+    await notificarReinicio();
 
     while (true) {
         try {
