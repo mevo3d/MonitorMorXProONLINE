@@ -289,8 +289,14 @@ export async function scrapeFacebookPages(onNewPost) {
                             for (const link of allLinks) {
                                 const href = link.href || '';
                                 if (href.includes('/posts/') || href.includes('fbid=') || href.includes('/permalink/') || href.includes('/photos/') || href.includes('/videos/')) {
-                                    // Limpiar parámetros de rastreo manteniendo los IDs
-                                    postUrl = href.split('&__cft__')[0].split('&__tn__')[0];
+                                    try {
+                                        const u = new URL(href, 'https://www.facebook.com');
+                                        u.searchParams.delete('__cft__[0]');
+                                        u.searchParams.delete('__tn__');
+                                        postUrl = u.href;
+                                    } catch (e) {
+                                        postUrl = href.split('&__cft__')[0].split('?__cft__')[0];
+                                    }
                                     break;
                                 }
                             }
@@ -301,13 +307,25 @@ export async function scrapeFacebookPages(onNewPost) {
                                     if (href.includes('facebook.com') && href.includes('/') && !href.includes('/login') && !href.includes('/hashtag')) {
                                         const ariaLabel = link.getAttribute('aria-label') || '';
                                         if (ariaLabel.match(/\d+\s*(hora|min|día|hour|day|ago)/i) || link.querySelector('abbr')) {
-                                            postUrl = href.split('&__cft__')[0].split('&__tn__')[0];
+                                            try {
+                                                const u = new URL(href, 'https://www.facebook.com');
+                                                u.searchParams.delete('__cft__[0]');
+                                                u.searchParams.delete('__tn__');
+                                                postUrl = u.href;
+                                            } catch (e) {
+                                                postUrl = href.split('&__cft__')[0].split('?__cft__')[0];
+                                            }
                                             break;
                                         }
                                     }
                                 }
                             }
                             if (!postUrl) postUrl = `${window.location.href}#post-fallback`;
+
+                            // 🛑 Filtro estricto: Omitir si el enlace apunta explícitamente a un comentario de Facebook
+                            if (postUrl.includes('comment_id') || postUrl.includes('reply_comment_id')) {
+                                continue;
+                            }
 
                             // Generar ID persistente y estable para evitar enviar duplicados
                             const idMatch = postUrl.match(/posts\/(\d+)/) || postUrl.match(/(?:fbid|story_fbid|v)=(\d+)/) || postUrl.match(/permalink\/(\d+)/);
