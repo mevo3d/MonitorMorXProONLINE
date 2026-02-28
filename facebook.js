@@ -292,14 +292,15 @@ export async function scrapeFacebookPages(onNewPost) {
                                     }
                                 }
                             }
+                            if (!postUrl) postUrl = `${window.location.href}#post-fallback`;
 
-                            if (!postUrl) postUrl = `${window.location.href}#post-${Date.now()}`;
-
-                            // mediaUrls ya fue calculado arriba
-
+                            // Generar ID persistente y estable para evitar enviar duplicados
                             const idMatch = postUrl.match(/posts\/(\d+)/) || postUrl.match(/fbid=(\d+)/) || postUrl.match(/permalink\/(\d+)/);
-                            const idKey = (text || '').substring(0, 40).replace(/\W/g, '');
-                            const id = idMatch ? `fb_${idMatch[1]}` : `fb_${idKey || 'img'}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+                            const idKey = (text || '').substring(0, 60).replace(/\W/g, '');
+                            let fallbackId = idKey;
+                            if (!fallbackId && mediaUrls.length > 0) fallbackId = 'media_' + mediaUrls[0].substring(mediaUrls[0].length - 30).replace(/\W/g, '');
+                            
+                            const id = idMatch ? `fb_${idMatch[1]}` : `fb_hash_${fallbackId}`;
 
                             extracted.push({
                                 id,
